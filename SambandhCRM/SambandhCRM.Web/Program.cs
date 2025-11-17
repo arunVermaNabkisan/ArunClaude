@@ -3,6 +3,7 @@ using SambandhCRM.Core.Interfaces;
 using SambandhCRM.Core.Services;
 using SambandhCRM.Data.Context;
 using SambandhCRM.Data.Repositories;
+using SambandhCRM.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,9 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ILeadRepository, LeadRepository>();
 builder.Services.AddScoped<IMasterDataRepository, MasterDataRepository>();
+// Register Services
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddSingleton<IAuthenticationTokenService, AuthenticationTokenService>();
 
 // Register Services
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
