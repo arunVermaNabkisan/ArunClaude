@@ -1,0 +1,73 @@
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">
+            <i class="bi bi-building"></i> Sambandh CRM
+        </a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="dashboard" Match="NavLinkMatch.All">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="customers">
+                        <i class="bi bi-people"></i> Customers
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="leads">
+                        <i class="bi bi-funnel"></i> Leads
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="relationships">
+                        <i class="bi bi-diagram-3"></i> Relationships
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="communications">
+                        <i class="bi bi-chat-dots"></i> Communications
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="reports">
+                        <i class="bi bi-bar-chart"></i> Reports
+                    </NavLink>
+                </div>
+
+                <AuthorizeView Policy="Administrator">
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="admin">
+                            <i class="bi bi-gear"></i> Administration
+                        </NavLink>
+                    </div>
+                </AuthorizeView>
+            </Authorized>
+        </AuthorizeView>
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

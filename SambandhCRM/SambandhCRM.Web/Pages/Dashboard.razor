@@ -1,0 +1,188 @@
+@page "/dashboard"
+@attribute [Authorize]
+@inject ICustomerRepository CustomerRepo
+@inject ILeadRepository LeadRepo
+
+<PageTitle>Dashboard - Sambandh CRM</PageTitle>
+
+<h3><i class="bi bi-speedometer2"></i> Dashboard</h3>
+
+@if (isLoading)
+{
+    <div class="text-center p-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h6 class="card-title">Total Customers</h6>
+                    <h2>@totalCustomers</h2>
+                    <small>Active in system</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h6 class="card-title">Active Leads</h6>
+                    <h2>@activeLeads</h2>
+                    <small>In pipeline</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h6 class="card-title">Follow-ups Due</h6>
+                    <h2>@followUpsDue</h2>
+                    <small>Today</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h6 class="card-title">New This Month</h6>
+                    <h2>@newThisMonth</h2>
+                    <small>Customers</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-funnel"></i> Recent Leads</h5>
+                </div>
+                <div class="card-body">
+                    @if (recentLeads.Any())
+                    {
+                        <div class="list-group">
+                            @foreach (var lead in recentLeads.Take(5))
+                            {
+                                <a href="/leads/@lead.LeadId" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">@lead.LeadCode</h6>
+                                        <small class="badge bg-@GetStatusColor(lead.LeadStatus)">@lead.LeadStatus</small>
+                                    </div>
+                                    <p class="mb-1">@lead.ProductInterest</p>
+                                    <small>Created: @lead.CreatedDate.ToString("MMM dd, yyyy")</small>
+                                </a>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No recent leads</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-people"></i> Recent Customers</h5>
+                </div>
+                <div class="card-body">
+                    @if (recentCustomers.Any())
+                    {
+                        <div class="list-group">
+                            @foreach (var customer in recentCustomers.Take(5))
+                            {
+                                <a href="/customers/@customer.CustomerId" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">@customer.EntityName</h6>
+                                        <small class="badge bg-@GetCustomerStatusColor(customer.CustomerStatus)">@customer.CustomerStatus</small>
+                                    </div>
+                                    <p class="mb-1">@customer.LegalConstitution - @customer.BusinessSegment</p>
+                                    <small>Added: @customer.CreatedDate.ToString("MMM dd, yyyy")</small>
+                                </a>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No recent customers</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private int totalCustomers = 0;
+    private int activeLeads = 0;
+    private int followUpsDue = 0;
+    private int newThisMonth = 0;
+    private List<Lead> recentLeads = new();
+    private List<Customer> recentCustomers = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var customers = await CustomerRepo.GetAllAsync();
+            var leads = await LeadRepo.GetAllAsync();
+
+            totalCustomers = customers.Count();
+            activeLeads = leads.Count(l => l.LeadStatus != "Dropped" && l.LeadStatus != "Converted");
+
+            var today = DateTime.Today;
+            var followUps = await LeadRepo.GetFollowUpsDueAsync(today);
+            followUpsDue = followUps.Count();
+
+            var firstDayOfMonth = new DateTime(today.Year, today.Month, 1);
+            newThisMonth = customers.Count(c => c.CreatedDate >= firstDayOfMonth);
+
+            recentLeads = leads.OrderByDescending(l => l.CreatedDate).Take(5).ToList();
+            recentCustomers = customers.OrderByDescending(c => c.CreatedDate).Take(5).ToList();
+        }
+        catch (Exception ex)
+        {
+            // Log error
+            Console.WriteLine($"Error loading dashboard: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetStatusColor(string status)
+    {
+        return status switch
+        {
+            "New" => "primary",
+            "InProgress" => "info",
+            "Documentation" => "warning",
+            "SubmittedToCredit" => "success",
+            "Dropped" => "danger",
+            "Converted" => "success",
+            _ => "secondary"
+        };
+    }
+
+    private string GetCustomerStatusColor(string status)
+    {
+        return status switch
+        {
+            "Prospect" => "info",
+            "ActiveLead" => "warning",
+            "Customer" => "success",
+            "Dormant" => "secondary",
+            "Archived" => "dark",
+            _ => "secondary"
+        };
+    }
+}

@@ -1,0 +1,218 @@
+@page "/leads"
+@attribute [Authorize]
+@inject ILeadRepository LeadRepo
+@inject ICustomerRepository CustomerRepo
+@inject NavigationManager Navigation
+
+<PageTitle>Leads - Sambandh CRM</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="bi bi-funnel"></i> Leads</h3>
+    <a href="/leads/create" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Add New Lead
+    </a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" placeholder="Search leads..." @bind="searchTerm" @bind:event="oninput" @onkeyup="FilterLeads" />
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" @bind="filterStatus" @bind:event="onchange" @onchange="FilterLeads">
+                    <option value="">All Status</option>
+                    <option value="New">New</option>
+                    <option value="InProgress">In Progress</option>
+                    <option value="Documentation">Documentation</option>
+                    <option value="SubmittedToCredit">Submitted to Credit</option>
+                    <option value="Dropped">Dropped</option>
+                    <option value="Converted">Converted</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" @bind="filterPriority" @bind:event="onchange" @onchange="FilterLeads">
+                    <option value="">All Priorities</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">
+                    <i class="bi bi-x-circle"></i> Clear
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center p-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (!filteredLeads.Any())
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No leads found matching your criteria.
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Lead Code</th>
+                            <th>Customer</th>
+                            <th>Product</th>
+                            <th>Amount Range</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Next Follow-up</th>
+                            <th>Created Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var lead in filteredLeads)
+                        {
+                            var customer = customers.FirstOrDefault(c => c.CustomerId == lead.CustomerId);
+                            <tr>
+                                <td>
+                                    <strong>@lead.LeadCode</strong>
+                                    <br /><small class="text-muted">@lead.LeadSource</small>
+                                </td>
+                                <td>@(customer?.EntityName ?? "N/A")</td>
+                                <td>@lead.ProductInterest</td>
+                                <td>
+                                    @if (lead.LoanAmountMin.HasValue && lead.LoanAmountMax.HasValue)
+                                    {
+                                        <text>₹@lead.LoanAmountMin.Value.ToString("N0") - ₹@lead.LoanAmountMax.Value.ToString("N0")</text>
+                                    }
+                                    else
+                                    {
+                                        <text>Not specified</text>
+                                    }
+                                </td>
+                                <td><span class="badge bg-@GetPriorityColor(lead.Priority)">@lead.Priority</span></td>
+                                <td><span class="badge bg-@GetStatusColor(lead.LeadStatus)">@lead.LeadStatus</span></td>
+                                <td>
+                                    @if (lead.NextFollowUpDate.HasValue)
+                                    {
+                                        <span class="@(lead.NextFollowUpDate.Value < DateTime.Now ? "text-danger fw-bold" : "")">
+                                            @lead.NextFollowUpDate.Value.ToString("MMM dd, yyyy")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Not set</span>
+                                    }
+                                </td>
+                                <td>@lead.CreatedDate.ToString("MMM dd, yyyy")</td>
+                                <td>
+                                    <a href="/leads/@lead.LeadId" class="btn btn-sm btn-outline-primary" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="/leads/edit/@lead.LeadId" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-3">
+                <p class="text-muted">Showing @filteredLeads.Count() of @allLeads.Count() leads</p>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private List<Lead> allLeads = new();
+    private List<Lead> filteredLeads = new();
+    private List<Customer> customers = new();
+    private string searchTerm = string.Empty;
+    private string filterStatus = string.Empty;
+    private string filterPriority = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+            var leads = await LeadRepo.GetAllAsync();
+            allLeads = leads.ToList();
+            filteredLeads = allLeads;
+
+            var customerList = await CustomerRepo.GetAllAsync();
+            customers = customerList.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading leads: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void FilterLeads()
+    {
+        filteredLeads = allLeads.Where(l =>
+            (string.IsNullOrEmpty(searchTerm) ||
+             l.LeadCode.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             l.ProductInterest.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(filterStatus) || l.LeadStatus == filterStatus) &&
+            (string.IsNullOrEmpty(filterPriority) || l.Priority == filterPriority)
+        ).ToList();
+    }
+
+    private void ClearFilters()
+    {
+        searchTerm = string.Empty;
+        filterStatus = string.Empty;
+        filterPriority = string.Empty;
+        filteredLeads = allLeads;
+    }
+
+    private string GetStatusColor(string status)
+    {
+        return status switch
+        {
+            "New" => "primary",
+            "InProgress" => "info",
+            "Documentation" => "warning",
+            "SubmittedToCredit" => "success",
+            "Dropped" => "danger",
+            "Converted" => "success",
+            _ => "secondary"
+        };
+    }
+
+    private string GetPriorityColor(string priority)
+    {
+        return priority switch
+        {
+            "High" => "danger",
+            "Medium" => "warning",
+            "Low" => "info",
+            _ => "secondary"
+        };
+    }
+}
