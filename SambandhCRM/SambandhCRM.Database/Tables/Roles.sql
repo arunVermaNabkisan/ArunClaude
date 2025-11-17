@@ -12,10 +12,10 @@ CREATE TABLE [dbo].[Roles]
 
 GO
 
--- Insert default roles
-INSERT INTO [dbo].[Roles] ([RoleName], [Description])
-VALUES
-    ('Administrator', 'System Administrator with full access'),
-    ('Senior Management', 'Senior management with view and report access'),
-    ('Regional Manager', 'Regional Manager overseeing multiple RMs'),
-    ('Relationship Manager', 'Relationship Manager managing customers');
+---- Insert default roles
+--INSERT INTO [dbo].[Roles] ([RoleName], [Description])
+--VALUES
+--    ('Administrator', 'System Administrator with full access'),
+--    ('Senior Management', 'Senior management with view and report access'),
+--    ('Regional Manager', 'Regional Manager overseeing multiple RMs'),
+--    ('Relationship Manager', 'Relationship Manager managing customers');

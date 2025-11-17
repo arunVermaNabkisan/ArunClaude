@@ -21,5 +21,8 @@ CREATE TABLE [dbo].[IndividualOrganizations]
 GO
 
 CREATE INDEX IX_IndividualOrganizations_IndividualId ON [dbo].[IndividualOrganizations](IndividualId);
+GO;
 CREATE INDEX IX_IndividualOrganizations_CustomerId ON [dbo].[IndividualOrganizations](CustomerId);
+GO;
 CREATE INDEX IX_IndividualOrganizations_IsStillActive ON [dbo].[IndividualOrganizations](IsStillActive);
+GO;

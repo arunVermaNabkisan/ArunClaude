@@ -20,5 +20,8 @@ CREATE TABLE [dbo].[Users]
 GO
 
 CREATE INDEX IX_Users_Email ON [dbo].[Users](Email);
+GO;
 CREATE INDEX IX_Users_UserName ON [dbo].[Users](UserName);
+GO;
 CREATE INDEX IX_Users_IsActive ON [dbo].[Users](IsActive);
+GO;

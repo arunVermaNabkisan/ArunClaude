@@ -19,7 +19,7 @@
                 <input type="text" class="form-control" placeholder="Search customers..." @bind="searchTerm" @bind:event="oninput" @onkeyup="FilterCustomers" />
             </div>
             <div class="col-md-3">
-                <select class="form-select" @bind="filterStatus" @bind:event="onchange" @onchange="FilterCustomers">
+                <select class="form-select" @bind="filterStatus" @bind:event="onchange">
                     <option value="">All Status</option>
                     <option value="Prospect">Prospect</option>
                     <option value="ActiveLead">Active Lead</option>
@@ -28,7 +28,7 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <select class="form-select" @bind="filterConstitution" @bind:event="onchange" @onchange="FilterCustomers">
+                <select class="form-select" @bind="filterConstitution" @bind:event="onchange">
                     <option value="">All Constitutions</option>
                     <option value="Company">Company</option>
                     <option value="Society">Society</option>

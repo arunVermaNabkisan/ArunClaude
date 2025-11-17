@@ -69,12 +69,23 @@ CREATE TABLE [dbo].[Customers]
 GO
 
 CREATE INDEX IX_Customers_CustomerCode ON [dbo].[Customers](CustomerCode);
+GO;
 CREATE INDEX IX_Customers_PANNumber ON [dbo].[Customers](PANNumber);
+GO;
 CREATE INDEX IX_Customers_EntityName ON [dbo].[Customers](EntityName);
+GO;
 CREATE INDEX IX_Customers_LegalConstitution ON [dbo].[Customers](LegalConstitution);
+GO;
 CREATE INDEX IX_Customers_BusinessSegment ON [dbo].[Customers](BusinessSegment);
+GO;
 CREATE INDEX IX_Customers_CustomerStatus ON [dbo].[Customers](CustomerStatus);
+GO;
 CREATE INDEX IX_Customers_AssignedToUserId ON [dbo].[Customers](AssignedToUserId);
+GO;
+
 CREATE INDEX IX_Customers_IsActive ON [dbo].[Customers](IsActive);
+GO;
 CREATE INDEX IX_Customers_MobileNumber ON [dbo].[Customers](MobileNumber);
+GO;
 CREATE INDEX IX_Customers_RegistrationNumber ON [dbo].[Customers](RegistrationNumber);
+GO;

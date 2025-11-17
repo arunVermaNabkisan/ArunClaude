@@ -20,7 +20,7 @@
                 <input type="text" class="form-control" placeholder="Search leads..." @bind="searchTerm" @bind:event="oninput" @onkeyup="FilterLeads" />
             </div>
             <div class="col-md-3">
-                <select class="form-select" @bind="filterStatus" @bind:event="onchange" @onchange="FilterLeads">
+                <select class="form-select" @bind="filterStatus" @bind:event="onchange">
                     <option value="">All Status</option>
                     <option value="New">New</option>
                     <option value="InProgress">In Progress</option>
@@ -31,7 +31,7 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <select class="form-select" @bind="filterPriority" @bind:event="onchange" @onchange="FilterLeads">
+                <select class="form-select" @bind="filterPriority" @bind:event="onchange">
                     <option value="">All Priorities</option>
                     <option value="High">High</option>
                     <option value="Medium">Medium</option>

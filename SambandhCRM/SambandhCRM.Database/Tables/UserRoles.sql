@@ -13,4 +13,6 @@ CREATE TABLE [dbo].[UserRoles]
 GO
 
 CREATE INDEX IX_UserRoles_UserId ON [dbo].[UserRoles](UserId);
+GO;
 CREATE INDEX IX_UserRoles_RoleId ON [dbo].[UserRoles](RoleId);
+GO;

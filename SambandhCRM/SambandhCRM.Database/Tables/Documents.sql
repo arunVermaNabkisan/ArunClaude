@@ -23,6 +23,10 @@ CREATE TABLE [dbo].[Documents]
 GO
 
 CREATE INDEX IX_Documents_CustomerId ON [dbo].[Documents](CustomerId);
+GO;
 CREATE INDEX IX_Documents_LeadId ON [dbo].[Documents](LeadId);
+GO;
 CREATE INDEX IX_Documents_DocumentType ON [dbo].[Documents](DocumentType);
+GO;
 CREATE INDEX IX_Documents_UploadDate ON [dbo].[Documents](UploadDate);
+GO;

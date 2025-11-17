@@ -14,10 +14,18 @@ CREATE TABLE [dbo].[AuditLog]
     CONSTRAINT FK_AuditLog_User FOREIGN KEY ([ChangedBy]) REFERENCES [dbo].[Users]([UserId])
 );
 
-GO
+GO;
 
-CREATE INDEX IX_AuditLog_TableName ON [dbo].[AuditLog](TableName);
+CREATE INDEX IX_AuditLog_TableName ON [dbo].[AuditLog](TableName); 
+
+GO;
+
 CREATE INDEX IX_AuditLog_RecordId ON [dbo].[AuditLog](RecordId);
+GO;
 CREATE INDEX IX_AuditLog_ChangeDate ON [dbo].[AuditLog](ChangeDate);
+GO;
 CREATE INDEX IX_AuditLog_ChangedBy ON [dbo].[AuditLog](ChangedBy);
+GO;
 CREATE INDEX IX_AuditLog_Action ON [dbo].[AuditLog](Action);
+GO;
+

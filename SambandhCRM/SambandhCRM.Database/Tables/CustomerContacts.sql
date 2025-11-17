@@ -18,4 +18,6 @@ CREATE TABLE [dbo].[CustomerContacts]
 GO
 
 CREATE INDEX IX_CustomerContacts_CustomerId ON [dbo].[CustomerContacts](CustomerId);
+GO;
 CREATE INDEX IX_CustomerContacts_MobileNumber ON [dbo].[CustomerContacts](MobileNumber);
+GO;

@@ -46,9 +46,16 @@ CREATE TABLE [dbo].[Leads]
 GO
 
 CREATE INDEX IX_Leads_LeadCode ON [dbo].[Leads](LeadCode);
+GO;
 CREATE INDEX IX_Leads_CustomerId ON [dbo].[Leads](CustomerId);
+GO;
 CREATE INDEX IX_Leads_LeadStatus ON [dbo].[Leads](LeadStatus);
+GO;
 CREATE INDEX IX_Leads_AssignedToUserId ON [dbo].[Leads](AssignedToUserId);
+GO;
 CREATE INDEX IX_Leads_NextFollowUpDate ON [dbo].[Leads](NextFollowUpDate);
+GO;
 CREATE INDEX IX_Leads_CreatedDate ON [dbo].[Leads](CreatedDate);
+GO;
 CREATE INDEX IX_Leads_Priority ON [dbo].[Leads](Priority);
+GO;

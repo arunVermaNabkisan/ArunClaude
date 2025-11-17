@@ -31,8 +31,14 @@ CREATE TABLE [dbo].[Communications]
 GO
 
 CREATE INDEX IX_Communications_CustomerId ON [dbo].[Communications](CustomerId);
+GO;
 CREATE INDEX IX_Communications_LeadId ON [dbo].[Communications](LeadId);
+GO;
 CREATE INDEX IX_Communications_CommunicationDate ON [dbo].[Communications](CommunicationDate);
+GO;
 CREATE INDEX IX_Communications_CommunicationType ON [dbo].[Communications](CommunicationType);
+GO;
 CREATE INDEX IX_Communications_CreatedBy ON [dbo].[Communications](CreatedBy);
+GO;
 CREATE INDEX IX_Communications_NextActionDate ON [dbo].[Communications](NextActionDate);
+GO;

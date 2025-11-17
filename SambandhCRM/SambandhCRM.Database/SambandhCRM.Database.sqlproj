@@ -6,7 +6,7 @@
     <Name>SambandhCRM.Database</Name>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectVersion>4.1</ProjectVersion>
-    <ProjectGuid>{8B3C1A2D-4F5E-6A7B-8C9D-0E1F2A3B4C5D}</ProjectGuid>
+    <ProjectGuid>{de9f265f-fb3c-4bc3-8e38-90a03d2b5d64}</ProjectGuid>
     <DSP>Microsoft.Data.Tools.Schema.Sql.Sql130DatabaseSchemaProvider</DSP>
     <OutputType>Database</OutputType>
     <RootPath>

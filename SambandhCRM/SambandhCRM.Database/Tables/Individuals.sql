@@ -20,6 +20,10 @@ CREATE TABLE [dbo].[Individuals]
 GO
 
 CREATE INDEX IX_Individuals_FullName ON [dbo].[Individuals](FullName);
+GO;
 CREATE INDEX IX_Individuals_MobileNumber ON [dbo].[Individuals](MobileNumber);
+GO;
 CREATE INDEX IX_Individuals_Email ON [dbo].[Individuals](Email);
+GO;
 CREATE INDEX IX_Individuals_PANNumber ON [dbo].[Individuals](PANNumber);
+GO;

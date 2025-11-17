@@ -16,5 +16,8 @@ CREATE TABLE [dbo].[LeadActivities]
 GO
 
 CREATE INDEX IX_LeadActivities_LeadId ON [dbo].[LeadActivities](LeadId);
+GO;
 CREATE INDEX IX_LeadActivities_ActivityDate ON [dbo].[LeadActivities](ActivityDate);
+GO;
 CREATE INDEX IX_LeadActivities_ActivityType ON [dbo].[LeadActivities](ActivityType);
+GO;
