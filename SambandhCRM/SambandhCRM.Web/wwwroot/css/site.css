@@ -145,6 +145,10 @@ main {
     display: none;
 }
 
+.nav-scrollable.show {
+    display: block;
+}
+
 .navbar-toggler {
     background-color: rgba(255, 255, 255, 0.1);
 }
@@ -191,7 +195,7 @@ main {
     }
 
     .nav-scrollable {
-        display: block;
+        display: block !important;
     }
 }
 
