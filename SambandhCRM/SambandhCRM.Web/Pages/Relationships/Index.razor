@@ -1,0 +1,293 @@
+@page "/relationships"
+@attribute [Authorize]
+@inject IRelationshipRepository RelationshipRepo
+@inject IIndividualRepository IndividualRepo
+@inject ICustomerRepository CustomerRepo
+@inject NavigationManager Navigation
+
+<PageTitle>Relationships - Sambandh CRM</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="bi bi-diagram-3"></i> Relationship Management</h3>
+    <a href="/relationships/create" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Add New Relationship
+    </a>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-primary">@totalRelationships</h5>
+                <p class="card-text text-muted">Total Relationships</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-success">@activeRelationships</h5>
+                <p class="card-text text-muted">Active Relationships</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-info">@totalIndividuals</h5>
+                <p class="card-text text-muted">Unique Individuals</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-warning">@decisionMakers</h5>
+                <p class="card-text text-muted">Decision Makers</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" placeholder="Search by name, organization, role..." @bind="searchTerm" @bind:event="oninput" @onkeyup="FilterRelationships" />
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" @bind="filterStatus" @bind:event="onchange" @bind:after="FilterRelationships">
+                    <option value="">All Status</option>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" @bind="filterRole" @bind:event="onchange" @bind:after="FilterRelationships">
+                    <option value="">All Roles</option>
+                    <option value="Chairman">Chairman</option>
+                    <option value="Managing Director">Managing Director</option>
+                    <option value="Director">Director</option>
+                    <option value="CEO">CEO</option>
+                    <option value="CFO">CFO</option>
+                    <option value="Authorized Signatory">Authorized Signatory</option>
+                    <option value="Key Management Personnel">Key Management Personnel</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">
+                    <i class="bi bi-x-circle"></i> Clear
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center p-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (!filteredRelationships.Any())
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No relationships found matching your criteria.
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Individual</th>
+                            <th>Organization</th>
+                            <th>Role</th>
+                            <th>Contact</th>
+                            <th>Tenure</th>
+                            <th>Status</th>
+                            <th>Flags</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var rel in filteredRelationships)
+                        {
+                            var individual = individuals.FirstOrDefault(i => i.IndividualId == rel.IndividualId);
+                            var customer = customers.FirstOrDefault(c => c.CustomerId == rel.CustomerId);
+                            <tr>
+                                <td>
+                                    <strong>@(individual?.FullName ?? "N/A")</strong>
+                                    @if (!string.IsNullOrEmpty(individual?.PANNumber))
+                                    {
+                                        <br /><small class="text-muted">PAN: @individual.PANNumber</small>
+                                    }
+                                </td>
+                                <td>
+                                    <a href="/customers/@rel.CustomerId">@(customer?.EntityName ?? "N/A")</a>
+                                    <br /><small class="text-muted">@(customer?.CustomerCode ?? "")</small>
+                                </td>
+                                <td>
+                                    <strong>@rel.RoleInOrganization</strong>
+                                    @if (!string.IsNullOrEmpty(rel.RoleSpecification))
+                                    {
+                                        <br /><small class="text-muted">@rel.RoleSpecification</small>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(individual?.MobileNumber))
+                                    {
+                                        <div><i class="bi bi-phone"></i> @individual.MobileNumber</div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(individual?.Email))
+                                    {
+                                        <div><i class="bi bi-envelope"></i> @individual.Email</div>
+                                    }
+                                </td>
+                                <td>
+                                    @if (rel.RoleStartDate.HasValue)
+                                    {
+                                        <div>Since: @rel.RoleStartDate.Value.ToString("MMM yyyy")</div>
+                                        if (!rel.IsStillActive && rel.RoleEndDate.HasValue)
+                                        {
+                                            <div>Until: @rel.RoleEndDate.Value.ToString("MMM yyyy")</div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Not specified</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge bg-@(rel.IsStillActive ? "success" : "secondary")">
+                                        @(rel.IsStillActive ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (rel.IsDecisionMaker)
+                                    {
+                                        <span class="badge bg-warning text-dark me-1" title="Decision Maker">
+                                            <i class="bi bi-star-fill"></i> DM
+                                        </span>
+                                    }
+                                    @if (rel.IsPreferredContact)
+                                    {
+                                        <span class="badge bg-info" title="Preferred Contact">
+                                            <i class="bi bi-person-check-fill"></i> PC
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    <a href="/relationships/@rel.IndividualOrganizationId" class="btn btn-sm btn-outline-primary" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="/relationships/edit/@rel.IndividualOrganizationId" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-3">
+                <p class="text-muted">Showing @filteredRelationships.Count() of @allRelationships.Count() relationships</p>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private List<IndividualOrganization> allRelationships = new();
+    private List<IndividualOrganization> filteredRelationships = new();
+    private List<Individual> individuals = new();
+    private List<Customer> customers = new();
+
+    private string searchTerm = string.Empty;
+    private string filterStatus = string.Empty;
+    private string filterRole = string.Empty;
+
+    private int totalRelationships = 0;
+    private int activeRelationships = 0;
+    private int totalIndividuals = 0;
+    private int decisionMakers = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+
+            var relationshipList = await RelationshipRepo.GetAllAsync();
+            allRelationships = relationshipList.ToList();
+            filteredRelationships = allRelationships;
+
+            var individualList = await IndividualRepo.GetAllAsync();
+            individuals = individualList.ToList();
+
+            var customerList = await CustomerRepo.GetAllAsync();
+            customers = customerList.ToList();
+
+            CalculateStatistics();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading relationships: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void CalculateStatistics()
+    {
+        totalRelationships = allRelationships.Count;
+        activeRelationships = allRelationships.Count(r => r.IsStillActive);
+        totalIndividuals = allRelationships.Select(r => r.IndividualId).Distinct().Count();
+        decisionMakers = allRelationships.Count(r => r.IsDecisionMaker && r.IsStillActive);
+    }
+
+    private void FilterRelationships()
+    {
+        filteredRelationships = allRelationships.Where(r =>
+        {
+            var individual = individuals.FirstOrDefault(i => i.IndividualId == r.IndividualId);
+            var customer = customers.FirstOrDefault(c => c.CustomerId == r.CustomerId);
+
+            var matchesSearch = string.IsNullOrEmpty(searchTerm) ||
+                               (individual?.FullName?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                               (customer?.EntityName?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                               r.RoleInOrganization.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                               (individual?.MobileNumber?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false);
+
+            var matchesStatus = string.IsNullOrEmpty(filterStatus) ||
+                               (filterStatus == "Active" && r.IsStillActive) ||
+                               (filterStatus == "Inactive" && !r.IsStillActive);
+
+            var matchesRole = string.IsNullOrEmpty(filterRole) ||
+                             r.RoleInOrganization.Contains(filterRole, StringComparison.OrdinalIgnoreCase);
+
+            return matchesSearch && matchesStatus && matchesRole;
+        }).ToList();
+    }
+
+    private void ClearFilters()
+    {
+        searchTerm = string.Empty;
+        filterStatus = string.Empty;
+        filterRole = string.Empty;
+        filteredRelationships = allRelationships;
+    }
+}

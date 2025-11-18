@@ -23,6 +23,9 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ILeadRepository, LeadRepository>();
 builder.Services.AddScoped<IMasterDataRepository, MasterDataRepository>();
+builder.Services.AddScoped<IIndividualRepository, IndividualRepository>();
+builder.Services.AddScoped<IRelationshipRepository, RelationshipRepository>();
+builder.Services.AddScoped<ICommunicationRepository, CommunicationRepository>();
 // Register Services
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddSingleton<IAuthenticationTokenService, AuthenticationTokenService>();
