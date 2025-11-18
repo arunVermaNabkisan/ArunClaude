@@ -56,14 +56,14 @@
                 <input type="text" class="form-control" placeholder="Search by name, organization, role..." @bind="searchTerm" @bind:event="oninput" @onkeyup="FilterRelationships" />
             </div>
             <div class="col-md-3">
-                <select class="form-select" @bind="filterStatus" @bind:event="onchange" @onchange="FilterRelationships">
+                <select class="form-select" @bind="filterStatus" @bind:event="onchange" @bind:after="FilterRelationships">
                     <option value="">All Status</option>
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
                 </select>
             </div>
             <div class="col-md-3">
-                <select class="form-select" @bind="filterRole" @bind:event="onchange" @onchange="FilterRelationships">
+                <select class="form-select" @bind="filterRole" @bind:event="onchange" @bind:after="FilterRelationships">
                     <option value="">All Roles</option>
                     <option value="Chairman">Chairman</option>
                     <option value="Managing Director">Managing Director</option>

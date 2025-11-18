@@ -56,25 +56,61 @@
                 <input type="text" class="form-control" placeholder="Search communications..." @bind="searchTerm" @bind:event="oninput" @onkeyup="FilterCommunications" />
             </div>
             <div class="col-md-2">
-                <select class="form-select" @bind="filterType" @bind:event="onchange" @onchange="FilterCommunications">
-                    <option value="">All Types</option>
-                    <option value="Phone">Phone Call</option>
-                    <option value="Email">Email</option>
-                    <option value="SMS">SMS</option>
-                    <option value="WhatsApp">WhatsApp</option>
-                    <option value="Meeting">Meeting</option>
-                    <option value="Letter">Letter</option>
-                </select>
+                    <!-- Fix for RZ10008: Remove duplicate @onchange when using @bind:event="onchange" -->
+                <!-- Fix for RZ10008: Remove duplicate @onchange when using @bind:event="onchange" -->
+                <div class="col-md-2">
+                    <select class="form-select" @bind="filterDirection" @bind:event="onchange">
+                        <option value="">All Directions</option>
+                        <option value="Inbound">Inbound</option>
+                        <option value="Outbound">Outbound</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" @bind="filterPeriod" @bind:event="onchange">
+                        <option value="All">All Time</option>
+                        <option value="Today">Today</option>
+                        <option value="Week">This Week</option>
+                        <option value="Month">This Month</option>
+                        <option value="Quarter">This Quarter</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" @bind="filterType" @bind:event="onchange">
+                        <option value="">All Types</option>
+                        <option value="Phone">Phone Call</option>
+                        <option value="Email">Email</option>
+                        <option value="SMS">SMS</option>
+                        <option value="WhatsApp">WhatsApp</option>
+                        <option value="Meeting">Meeting</option>
+                        <option value="Letter">Letter</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" @bind="filterDirection" @bind:event="onchange">
+                        <option value="">All Directions</option>
+                        <option value="Inbound">Inbound</option>
+                        <option value="Outbound">Outbound</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" @bind="filterPeriod" @bind:event="onchange">
+                        <option value="All">All Time</option>
+                        <option value="Today">Today</option>
+                        <option value="Week">This Week</option>
+                        <option value="Month">This Month</option>
+                        <option value="Quarter">This Quarter</option>
+                    </select>
+                </div>
             </div>
             <div class="col-md-2">
-                <select class="form-select" @bind="filterDirection" @bind:event="onchange" @onchange="FilterCommunications">
+                <select class="form-select" @bind="filterDirection" @bind:event="onchange" @bind:after="FilterCommunications">
                     <option value="">All Directions</option>
                     <option value="Inbound">Inbound</option>
                     <option value="Outbound">Outbound</option>
                 </select>
             </div>
             <div class="col-md-2">
-                <select class="form-select" @bind="filterPeriod" @bind:event="onchange" @onchange="FilterCommunications">
+                <select class="form-select" @bind="filterPeriod" @bind:event="onchange" @bind:after="FilterCommunications">
                     <option value="All">All Time</option>
                     <option value="Today">Today</option>
                     <option value="Week">This Week</option>
