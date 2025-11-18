@@ -197,6 +197,10 @@ main {
     .nav-scrollable {
         display: block !important;
     }
+
+    .nav-scrollable.collapse {
+        display: block !important;
+    }
 }
 
 .card {
