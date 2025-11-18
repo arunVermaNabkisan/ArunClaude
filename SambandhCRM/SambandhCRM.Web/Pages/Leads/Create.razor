@@ -1,0 +1,401 @@
+@page "/leads/create"
+@using System.ComponentModel.DataAnnotations
+@attribute [Authorize]
+@inject ILeadRepository LeadRepo
+@inject ICustomerRepository CustomerRepo
+@inject IUserRepository UserRepo
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Add New Lead - Sambandh CRM</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="bi bi-plus-circle"></i> Add New Lead</h3>
+    <a href="/leads" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Leads
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> @errorMessage
+        <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(successMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle"></i> @successMessage
+        <button type="button" class="btn-close" @onclick="() => successMessage = null"></button>
+    </div>
+}
+
+<div class="card">
+    <div class="card-body">
+        <EditForm Model="@leadModel" OnValidSubmit="@HandleSubmit">
+            <DataAnnotationsValidator />
+
+            <!-- Basic Information Section -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-info-circle"></i> Basic Information</h5>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Customer <span class="text-danger">*</span></label>
+                    <InputSelect @bind-Value="leadModel.CustomerId" class="form-select">
+                        <option value="0">-- Select Customer --</option>
+                        @foreach (var customer in customers)
+                        {
+                            <option value="@customer.CustomerId">@customer.EntityName (@customer.CustomerCode)</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => leadModel.CustomerId)" />
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Lead Source <span class="text-danger">*</span></label>
+                    <InputSelect @bind-Value="leadModel.LeadSource" class="form-select">
+                        <option value="">-- Select Lead Source --</option>
+                        <option value="Direct Walk-in">Direct Walk-in</option>
+                        <option value="Website">Website</option>
+                        <option value="Referral">Referral</option>
+                        <option value="Phone Call">Phone Call</option>
+                        <option value="Email">Email</option>
+                        <option value="Social Media">Social Media</option>
+                        <option value="Advertisement">Advertisement</option>
+                        <option value="Event/Exhibition">Event/Exhibition</option>
+                        <option value="Other">Other</option>
+                    </InputSelect>
+                    <ValidationMessage For="@(() => leadModel.LeadSource)" />
+                </div>
+
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Lead Source Details</label>
+                    <InputText @bind-Value="leadModel.LeadSourceDetails" class="form-control"
+                               placeholder="e.g., Referral by John Doe, Google Ads Campaign, etc." />
+                    <ValidationMessage For="@(() => leadModel.LeadSourceDetails)" />
+                </div>
+            </div>
+
+            <!-- Product & Loan Information Section -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-cart"></i> Product & Loan Information</h5>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Product Interest <span class="text-danger">*</span></label>
+                    <InputSelect @bind-Value="leadModel.ProductInterest" class="form-select">
+                        <option value="">-- Select Product --</option>
+                        <option value="Term Loan">Term Loan</option>
+                        <option value="Working Capital">Working Capital</option>
+                        <option value="Business Loan">Business Loan</option>
+                        <option value="Agricultural Loan">Agricultural Loan</option>
+                        <option value="Vehicle Loan">Vehicle Loan</option>
+                        <option value="Equipment Finance">Equipment Finance</option>
+                        <option value="Home Loan">Home Loan</option>
+                        <option value="Personal Loan">Personal Loan</option>
+                        <option value="Other">Other</option>
+                    </InputSelect>
+                    <ValidationMessage For="@(() => leadModel.ProductInterest)" />
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Minimum Loan Amount (₹)</label>
+                    <InputNumber @bind-Value="leadModel.LoanAmountMin" class="form-control"
+                                 placeholder="e.g., 100000" />
+                    <ValidationMessage For="@(() => leadModel.LoanAmountMin)" />
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Maximum Loan Amount (₹)</label>
+                    <InputNumber @bind-Value="leadModel.LoanAmountMax" class="form-control"
+                                 placeholder="e.g., 500000" />
+                    <ValidationMessage For="@(() => leadModel.LoanAmountMax)" />
+                </div>
+            </div>
+
+            <!-- Priority & Status Section -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-flag"></i> Priority & Status</h5>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Priority <span class="text-danger">*</span></label>
+                    <InputSelect @bind-Value="leadModel.Priority" class="form-select">
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </InputSelect>
+                    <ValidationMessage For="@(() => leadModel.Priority)" />
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Lead Status <span class="text-danger">*</span></label>
+                    <InputSelect @bind-Value="leadModel.LeadStatus" class="form-select">
+                        <option value="New">New</option>
+                        <option value="InProgress">In Progress</option>
+                        <option value="Documentation">Documentation</option>
+                        <option value="SubmittedToCredit">Submitted to Credit</option>
+                        <option value="Dropped">Dropped</option>
+                        <option value="Converted">Converted</option>
+                    </InputSelect>
+                    <ValidationMessage For="@(() => leadModel.LeadStatus)" />
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Assigned To</label>
+                    <InputSelect @bind-Value="leadModel.AssignedToUserId" class="form-select">
+                        <option value="">-- Not Assigned --</option>
+                        @foreach (var user in users)
+                        {
+                            <option value="@user.UserId">@user.FullName</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => leadModel.AssignedToUserId)" />
+                </div>
+            </div>
+
+            <!-- Follow-up Information Section -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-calendar-check"></i> Follow-up Information</h5>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Last Contact Date</label>
+                    <InputDate @bind-Value="leadModel.LastContactDate" class="form-control" />
+                    <ValidationMessage For="@(() => leadModel.LastContactDate)" />
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Next Follow-up Date</label>
+                    <InputDate @bind-Value="leadModel.NextFollowUpDate" class="form-control" />
+                    <ValidationMessage For="@(() => leadModel.NextFollowUpDate)" />
+                </div>
+
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Notes</label>
+                    <InputTextArea @bind-Value="leadModel.Notes" class="form-control"
+                                   rows="3" placeholder="Add any additional notes about this lead..." />
+                    <ValidationMessage For="@(() => leadModel.Notes)" />
+                </div>
+            </div>
+
+            <!-- Document Checklist Section -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-file-earmark-check"></i> Document Checklist</h5>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <div class="form-check">
+                        <InputCheckbox @bind-Value="leadModel.HasKYCDocuments" class="form-check-input" id="kycDocs" />
+                        <label class="form-check-label" for="kycDocs">
+                            KYC Documents
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <div class="form-check">
+                        <InputCheckbox @bind-Value="leadModel.HasFinancialStatements" class="form-check-input" id="financialDocs" />
+                        <label class="form-check-label" for="financialDocs">
+                            Financial Statements
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <div class="form-check">
+                        <InputCheckbox @bind-Value="leadModel.HasBusinessDocuments" class="form-check-input" id="businessDocs" />
+                        <label class="form-check-label" for="businessDocs">
+                            Business Documents
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <div class="form-check">
+                        <InputCheckbox @bind-Value="leadModel.HasOtherDocuments" class="form-check-input" id="otherDocs" />
+                        <label class="form-check-label" for="otherDocs">
+                            Other Documents
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="/leads" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            <i class="bi bi-save"></i> Save Lead
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private LeadFormModel leadModel = new();
+    private List<Customer> customers = new();
+    private List<User> users = new();
+    private string? errorMessage;
+    private string? successMessage;
+    private bool isSubmitting = false;
+    private int currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            // Load customers for dropdown
+            var customerList = await CustomerRepo.GetAllAsync();
+            customers = customerList.Where(c => c.IsActive).ToList();
+
+            // Load users for assignment dropdown
+            var userList = await UserRepo.GetAllAsync();
+            users = userList.Where(u => u.IsActive).ToList();
+
+            // Get current user ID for audit fields
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userIdClaim = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
+            {
+                currentUserId = userId;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading data: {ex.Message}";
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        isSubmitting = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            // Generate lead code
+            var leadCode = await LeadRepo.GenerateLeadCodeAsync();
+
+            // Map form model to Lead entity
+            var lead = new Lead
+            {
+                LeadCode = leadCode,
+                CustomerId = leadModel.CustomerId,
+                LeadSource = leadModel.LeadSource,
+                LeadSourceDetails = leadModel.LeadSourceDetails,
+                ProductInterest = leadModel.ProductInterest,
+                LoanAmountMin = leadModel.LoanAmountMin,
+                LoanAmountMax = leadModel.LoanAmountMax,
+                Priority = leadModel.Priority,
+                LeadStatus = leadModel.LeadStatus,
+                AssignedToUserId = leadModel.AssignedToUserId == 0 ? null : leadModel.AssignedToUserId,
+                AssignedDate = leadModel.AssignedToUserId.HasValue && leadModel.AssignedToUserId > 0 ? DateTime.Now : null,
+                AssignedBy = leadModel.AssignedToUserId.HasValue && leadModel.AssignedToUserId > 0 ? currentUserId : null,
+                LastContactDate = leadModel.LastContactDate,
+                NextFollowUpDate = leadModel.NextFollowUpDate,
+                Notes = leadModel.Notes,
+                HasKYCDocuments = leadModel.HasKYCDocuments,
+                HasFinancialStatements = leadModel.HasFinancialStatements,
+                HasBusinessDocuments = leadModel.HasBusinessDocuments,
+                HasOtherDocuments = leadModel.HasOtherDocuments,
+                IsActive = true,
+                CreatedDate = DateTime.Now,
+                CreatedBy = currentUserId
+            };
+
+            // Save to database
+            var leadId = await LeadRepo.AddAsync(lead);
+
+            if (leadId > 0)
+            {
+                successMessage = $"Lead {leadCode} has been created successfully!";
+                // Navigate to leads list after a short delay
+                await Task.Delay(1500);
+                Navigation.NavigateTo("/leads");
+            }
+            else
+            {
+                errorMessage = "Failed to create lead. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    public class LeadFormModel
+    {
+        [Required(ErrorMessage = "Please select a customer")]
+        [Range(1, int.MaxValue, ErrorMessage = "Please select a valid customer")]
+        public int CustomerId { get; set; }
+
+        [Required(ErrorMessage = "Lead source is required")]
+        [StringLength(50)]
+        public string LeadSource { get; set; } = string.Empty;
+
+        [StringLength(255)]
+        public string? LeadSourceDetails { get; set; }
+
+        [Required(ErrorMessage = "Product interest is required")]
+        [StringLength(100)]
+        public string ProductInterest { get; set; } = string.Empty;
+
+        public decimal? LoanAmountMin { get; set; }
+
+        public decimal? LoanAmountMax { get; set; }
+
+        [Required]
+        [StringLength(20)]
+        public string Priority { get; set; } = "Medium";
+
+        [Required]
+        [StringLength(50)]
+        public string LeadStatus { get; set; } = "New";
+
+        public int? AssignedToUserId { get; set; }
+
+        public DateTime? LastContactDate { get; set; }
+
+        public DateTime? NextFollowUpDate { get; set; }
+
+        public string? Notes { get; set; }
+
+        public bool HasKYCDocuments { get; set; }
+
+        public bool HasFinancialStatements { get; set; }
+
+        public bool HasBusinessDocuments { get; set; }
+
+        public bool HasOtherDocuments { get; set; }
+    }
+}

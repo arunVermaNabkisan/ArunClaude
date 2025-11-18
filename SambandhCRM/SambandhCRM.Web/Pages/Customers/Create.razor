@@ -1,0 +1,348 @@
+@page "/customers/create"
+@attribute [Authorize]
+@inject ICustomerRepository CustomerRepo
+@inject NavigationManager Navigation
+@using System.Security.Claims
+
+<PageTitle>Add New Customer - Sambandh CRM</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="bi bi-person-plus"></i> Add New Customer</h3>
+    <a href="/customers" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Customers
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> @errorMessage
+        <button type="button" class="btn-close" @onclick="@(() => errorMessage = string.Empty)"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(successMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle"></i> @successMessage
+        <button type="button" class="btn-close" @onclick="@(() => successMessage = string.Empty)"></button>
+    </div>
+}
+
+<EditForm Model="@customer" OnValidSubmit="@HandleValidSubmit">
+    <DataAnnotationsValidator />
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Basic Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="legalConstitution" class="form-label">Legal Constitution <span class="text-danger">*</span></label>
+                    <InputSelect id="legalConstitution" class="form-select" @bind-Value="customer.LegalConstitution">
+                        <option value="">-- Select Constitution --</option>
+                        <option value="Company">Company</option>
+                        <option value="Society">Society</option>
+                        <option value="Trust/NGO">Trust/NGO</option>
+                        <option value="Partnership/LLP">Partnership/LLP</option>
+                        <option value="Individual/Proprietor">Individual/Proprietor</option>
+                    </InputSelect>
+                    <ValidationMessage For="@(() => customer.LegalConstitution)" />
+                </div>
+
+                <div class="col-md-6">
+                    <label for="customerCode" class="form-label">Customer Code <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <InputText id="customerCode" class="form-control" @bind-Value="customer.CustomerCode" placeholder="e.g., CUST2025001" />
+                        <button type="button" class="btn btn-outline-secondary" @onclick="GenerateCustomerCode">
+                            <i class="bi bi-arrow-clockwise"></i> Generate
+                        </button>
+                    </div>
+                    <ValidationMessage For="@(() => customer.CustomerCode)" />
+                    <small class="text-muted">Auto-generate or enter manually</small>
+                </div>
+
+                <div class="col-md-12">
+                    <label for="entityName" class="form-label">Entity Name <span class="text-danger">*</span></label>
+                    <InputText id="entityName" class="form-control" @bind-Value="customer.EntityName" placeholder="Enter full legal name" />
+                    <ValidationMessage For="@(() => customer.EntityName)" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-card-text"></i> Identification Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                @if (IsIndividual())
+                {
+                    <div class="col-md-6">
+                        <label for="aadhaarNumber" class="form-label">Aadhaar Number</label>
+                        <InputText id="aadhaarNumber" class="form-control" @bind-Value="customer.AadhaarNumber" placeholder="XXXX-XXXX-XXXX" maxlength="12" />
+                        <ValidationMessage For="@(() => customer.AadhaarNumber)" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="dateOfBirth" class="form-label">Date of Birth</label>
+                        <InputDate id="dateOfBirth" class="form-control" @bind-Value="customer.DateOfBirth" />
+                        <ValidationMessage For="@(() => customer.DateOfBirth)" />
+                    </div>
+                }
+                else
+                {
+                    <div class="col-md-6">
+                        <label for="registrationNumber" class="form-label">Registration Number</label>
+                        <InputText id="registrationNumber" class="form-control" @bind-Value="customer.RegistrationNumber" placeholder="CIN/Society Reg/Trust Reg" />
+                        <ValidationMessage For="@(() => customer.RegistrationNumber)" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="dateOfIncorporation" class="form-label">Date of Incorporation</label>
+                        <InputDate id="dateOfIncorporation" class="form-control" @bind-Value="customer.DateOfIncorporation" />
+                        <ValidationMessage For="@(() => customer.DateOfIncorporation)" />
+                    </div>
+                }
+
+                <div class="col-md-6">
+                    <label for="panNumber" class="form-label">PAN Number</label>
+                    <InputText id="panNumber" class="form-control" @bind-Value="customer.PANNumber" placeholder="AAAAA9999A" maxlength="10" style="text-transform: uppercase;" />
+                    <ValidationMessage For="@(() => customer.PANNumber)" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-briefcase"></i> Business Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="businessSegment" class="form-label">Business Segment</label>
+                    <InputText id="businessSegment" class="form-control" @bind-Value="customer.BusinessSegment" placeholder="e.g., Manufacturing, Services, Retail" />
+                    <ValidationMessage For="@(() => customer.BusinessSegment)" />
+                </div>
+
+                @if (IsIndividual())
+                {
+                    <div class="col-md-6">
+                        <label for="occupation" class="form-label">Occupation</label>
+                        <InputText id="occupation" class="form-control" @bind-Value="customer.Occupation" placeholder="e.g., Salaried, Self-Employed" />
+                        <ValidationMessage For="@(() => customer.Occupation)" />
+                    </div>
+                }
+
+                <div class="col-md-12">
+                    <label for="primaryBusinessActivity" class="form-label">Primary Business Activity</label>
+                    <InputTextArea id="primaryBusinessActivity" class="form-control" @bind-Value="customer.PrimaryBusinessActivity" rows="2" placeholder="Brief description of main business activities" />
+                    <ValidationMessage For="@(() => customer.PrimaryBusinessActivity)" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-geo-alt"></i> Contact Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="mobileNumber" class="form-label">Mobile Number</label>
+                    <InputText id="mobileNumber" class="form-control" @bind-Value="customer.MobileNumber" placeholder="+91 XXXXXXXXXX" maxlength="15" />
+                    <ValidationMessage For="@(() => customer.MobileNumber)" />
+                </div>
+
+                <div class="col-md-6">
+                    <label for="primaryEmail" class="form-label">Primary Email</label>
+                    <InputText id="primaryEmail" type="email" class="form-control" @bind-Value="customer.PrimaryEmail" placeholder="example@company.com" />
+                    <ValidationMessage For="@(() => customer.PrimaryEmail)" />
+                </div>
+
+                <div class="col-md-10">
+                    <label for="registeredAddress" class="form-label">Registered Address</label>
+                    <InputTextArea id="registeredAddress" class="form-control" @bind-Value="customer.RegisteredAddress" rows="2" placeholder="Street, Area, City, State" />
+                    <ValidationMessage For="@(() => customer.RegisteredAddress)" />
+                </div>
+
+                <div class="col-md-2">
+                    <label for="registeredPinCode" class="form-label">PIN Code</label>
+                    <InputText id="registeredPinCode" class="form-control" @bind-Value="customer.RegisteredPinCode" placeholder="000000" maxlength="6" />
+                    <ValidationMessage For="@(() => customer.RegisteredPinCode)" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-flag"></i> Status</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="customerStatus" class="form-label">Customer Status <span class="text-danger">*</span></label>
+                    <InputSelect id="customerStatus" class="form-select" @bind-Value="customer.CustomerStatus">
+                        <option value="Prospect">Prospect</option>
+                        <option value="ActiveLead">Active Lead</option>
+                        <option value="Customer">Customer</option>
+                        <option value="Dormant">Dormant</option>
+                    </InputSelect>
+                    <ValidationMessage For="@(() => customer.CustomerStatus)" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary" disabled="@isSaving">
+            @if (isSaving)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <span>Saving...</span>
+            }
+            else
+            {
+                <i class="bi bi-save"></i>
+                <span> Save Customer</span>
+            }
+        </button>
+        <a href="/customers" class="btn btn-outline-secondary">
+            <i class="bi bi-x-circle"></i> Cancel
+        </a>
+    </div>
+</EditForm>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    private Customer customer = new();
+    private bool isSaving = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Set default values
+        customer.CustomerStatus = "Prospect";
+        customer.IsActive = true;
+        customer.CreatedDate = DateTime.Now;
+
+        // Get current user ID for CreatedBy
+        if (authenticationState != null)
+        {
+            var authState = await authenticationState;
+            var userIdClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
+            {
+                customer.CreatedBy = userId;
+            }
+        }
+
+        // Auto-generate initial customer code
+        GenerateCustomerCode();
+    }
+
+    private void GenerateCustomerCode()
+    {
+        var year = DateTime.Now.Year;
+        var random = new Random();
+        var randomNumber = random.Next(1000, 9999);
+        customer.CustomerCode = $"CUST{year}{randomNumber}";
+    }
+
+    private bool IsIndividual()
+    {
+        return customer.LegalConstitution == "Individual/Proprietor";
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            isSaving = true;
+            errorMessage = string.Empty;
+            successMessage = string.Empty;
+
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(customer.CustomerCode))
+            {
+                errorMessage = "Customer Code is required.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(customer.LegalConstitution))
+            {
+                errorMessage = "Legal Constitution is required.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(customer.EntityName))
+            {
+                errorMessage = "Entity Name is required.";
+                return;
+            }
+
+            // Check for duplicates
+            if (!string.IsNullOrEmpty(customer.PANNumber) || !string.IsNullOrEmpty(customer.RegistrationNumber) || !string.IsNullOrEmpty(customer.MobileNumber))
+            {
+                var isDuplicate = await CustomerRepo.CheckDuplicateAsync(
+                    customer.PANNumber ?? string.Empty,
+                    customer.RegistrationNumber,
+                    customer.MobileNumber
+                );
+
+                if (isDuplicate)
+                {
+                    errorMessage = "A customer with the same PAN, Registration Number, or Mobile Number already exists.";
+                    return;
+                }
+            }
+
+            // Check if customer code already exists
+            var existingCustomer = await CustomerRepo.GetByCustomerCodeAsync(customer.CustomerCode);
+            if (existingCustomer != null)
+            {
+                errorMessage = "Customer Code already exists. Please use a different code.";
+                GenerateCustomerCode(); // Generate new code
+                return;
+            }
+
+            // Uppercase PAN number
+            if (!string.IsNullOrEmpty(customer.PANNumber))
+            {
+                customer.PANNumber = customer.PANNumber.ToUpper();
+            }
+
+            // Save to database
+            var customerId = await CustomerRepo.AddAsync(customer);
+
+            if (customerId > 0)
+            {
+                successMessage = "Customer created successfully!";
+                // Navigate to customer details or list after a short delay
+                await Task.Delay(1500);
+                Navigation.NavigateTo($"/customers");
+            }
+            else
+            {
+                errorMessage = "Failed to create customer. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred: {ex.Message}";
+            Console.WriteLine($"Error creating customer: {ex}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}
