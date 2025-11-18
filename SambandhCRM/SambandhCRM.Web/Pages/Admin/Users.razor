@@ -1,0 +1,336 @@
+@page "/admin/users"
+@using SambandhCRM.Core.Interfaces
+@using SambandhCRM.Core.Models
+@inject IUserRepository UserRepository
+@inject IRoleRepository RoleRepository
+@inject NavigationManager Navigation
+@attribute [Authorize(Policy = "Administrator")]
+
+<PageTitle>User Management - Sambandh CRM</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/admin">Administration</a></li>
+                    <li class="breadcrumb-item active">User Management</li>
+                </ol>
+            </nav>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>User Management</h2>
+                    <p class="text-muted">Manage system users and their access</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary" @onclick="ShowCreateUserModal">
+                        <i class="bi bi-person-plus me-2"></i>Add New User
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading users...</p>
+        </div>
+    }
+    else
+    {
+        <!-- Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2">Total Users</h6>
+                        <h3 class="card-title mb-0">@users.Count()</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2">Active Users</h6>
+                        <h3 class="card-title mb-0">@users.Count(u => u.IsActive)</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-dark">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2">Inactive Users</h6>
+                        <h3 class="card-title mb-0">@users.Count(u => !u.IsActive)</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2">Logged In Today</h6>
+                        <h3 class="card-title mb-0">@users.Count(u => u.LastLoginDate?.Date == DateTime.Today)</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" placeholder="Search by name, username, or email..."
+                           @bind="searchQuery" @bind:event="oninput" @onkeyup="FilterUsers" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" @bind="filterRole" @bind:event="onchange" @onchange="FilterUsers">
+                    <option value="">All Roles</option>
+                    @foreach (var role in roles)
+                    {
+                        <option value="@role.RoleId">@role.RoleName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" @bind="filterStatus" @bind:event="onchange" @onchange="FilterUsers">
+                    <option value="all">All Status</option>
+                    <option value="active">Active Only</option>
+                    <option value="inactive">Inactive Only</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="card">
+            <div class="card-body">
+                @if (!filteredUsers.Any())
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-people" style="font-size: 4rem; color: #ccc;"></i>
+                        <p class="text-muted mt-3">No users found</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Full Name</th>
+                                    <th>Email</th>
+                                    <th>Mobile</th>
+                                    <th>Roles</th>
+                                    <th>Last Login</th>
+                                    <th>Status</th>
+                                    <th style="width: 150px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var user in filteredUsers)
+                                {
+                                    <tr>
+                                        <td>
+                                            <i class="bi bi-person-circle me-2"></i>
+                                            <strong>@user.Username</strong>
+                                        </td>
+                                        <td>@user.FullName</td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(user.Email))
+                                            {
+                                                <i class="bi bi-envelope me-1"></i>
+                                                @user.Email
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(user.MobileNumber))
+                                            {
+                                                <i class="bi bi-phone me-1"></i>
+                                                @user.MobileNumber
+                                            }
+                                        </td>
+                                        <td>
+                                            @* Placeholder for user roles - to be implemented with UserRoles table *@
+                                            <span class="badge bg-secondary">User</span>
+                                        </td>
+                                        <td>
+                                            @if (user.LastLoginDate.HasValue)
+                                            {
+                                                <small>@user.LastLoginDate.Value.ToString("MMM dd, yyyy HH:mm")</small>
+                                            }
+                                            else
+                                            {
+                                                <small class="text-muted">Never</small>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (user.IsActive)
+                                            {
+                                                <span class="badge bg-success">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">Inactive</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" @onclick="() => EditUser(user)" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-outline-warning" @onclick="() => ResetPassword(user)" title="Reset Password">
+                                                    <i class="bi bi-key"></i>
+                                                </button>
+                                                @if (user.IsActive)
+                                                {
+                                                    <button class="btn btn-outline-danger" @onclick="() => DeactivateUser(user)" title="Deactivate">
+                                                        <i class="bi bi-x-circle"></i>
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button class="btn btn-outline-success" @onclick="() => ActivateUser(user)" title="Activate">
+                                                        <i class="bi bi-check-circle"></i>
+                                                    </button>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private List<User> users = new();
+    private List<User> filteredUsers = new();
+    private List<Role> roles = new();
+    private string searchQuery = "";
+    private string filterRole = "";
+    private string filterStatus = "all";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            users = (await UserRepository.GetAllAsync()).ToList();
+            roles = (await RoleRepository.GetAllAsync()).ToList();
+            filteredUsers = users;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading users: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void FilterUsers()
+    {
+        filteredUsers = users.AsEnumerable();
+
+        // Apply search filter
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            var query = searchQuery.ToLower();
+            filteredUsers = filteredUsers.Where(u =>
+                u.Username.ToLower().Contains(query) ||
+                u.FullName.ToLower().Contains(query) ||
+                (u.Email?.ToLower().Contains(query) ?? false) ||
+                (u.MobileNumber?.Contains(query) ?? false)
+            );
+        }
+
+        // Apply status filter
+        if (filterStatus == "active")
+        {
+            filteredUsers = filteredUsers.Where(u => u.IsActive);
+        }
+        else if (filterStatus == "inactive")
+        {
+            filteredUsers = filteredUsers.Where(u => !u.IsActive);
+        }
+
+        // Apply role filter
+        // TODO: Implement role filtering when UserRoles relationship is available
+
+        filteredUsers = filteredUsers.ToList();
+    }
+
+    private void ShowCreateUserModal()
+    {
+        // TODO: Implement create user modal or navigate to create page
+        Navigation.NavigateTo("/admin/users/create");
+    }
+
+    private void EditUser(User user)
+    {
+        // TODO: Implement edit user modal or navigate to edit page
+        Navigation.NavigateTo($"/admin/users/edit/{user.UserId}");
+    }
+
+    private async Task ResetPassword(User user)
+    {
+        // TODO: Implement password reset functionality
+        Console.WriteLine($"Reset password for user: {user.Username}");
+        // This would typically send a password reset email or generate a temporary password
+    }
+
+    private async Task DeactivateUser(User user)
+    {
+        if (confirm($"Are you sure you want to deactivate user '{user.Username}'?"))
+        {
+            try
+            {
+                user.IsActive = false;
+                await UserRepository.UpdateAsync(user);
+                await LoadData();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deactivating user: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task ActivateUser(User user)
+    {
+        try
+        {
+            user.IsActive = true;
+            await UserRepository.UpdateAsync(user);
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error activating user: {ex.Message}");
+        }
+    }
+
+    // Helper method for confirmation (would use JavaScript interop in real implementation)
+    private bool confirm(string message)
+    {
+        // TODO: Implement JavaScript confirm dialog
+        Console.WriteLine($"Confirm: {message}");
+        return true;
+    }
+}

@@ -1,0 +1,295 @@
+@page "/admin/masterdata"
+@using SambandhCRM.Core.Interfaces
+@using SambandhCRM.Core.Models
+@inject IMasterDataRepository MasterDataRepository
+@attribute [Authorize(Policy = "Administrator")]
+
+<PageTitle>Master Data - Sambandh CRM</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/admin">Administration</a></li>
+                    <li class="breadcrumb-item active">Master Data</li>
+                </ol>
+            </nav>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Master Data Configuration</h2>
+                    <p class="text-muted">Manage lookup values and reference data</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary" @onclick="ShowAddDataModal">
+                        <i class="bi bi-plus-circle me-2"></i>Add Master Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading master data...</p>
+        </div>
+    }
+    else
+    {
+        <!-- Category Selection -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Select Category</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="btn-group flex-wrap" role="group">
+                            @foreach (var category in masterDataCategories)
+                            {
+                                <button type="button"
+                                        class="btn @(selectedCategory == category ? "btn-primary" : "btn-outline-primary")"
+                                        @onclick="() => SelectCategory(category)">
+                                    <i class="bi bi-tag me-2"></i>@category
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        @if (!string.IsNullOrEmpty(selectedCategory))
+        {
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">@selectedCategory</h5>
+                    <div>
+                        <span class="badge bg-primary">@GetCategoryData().Count() items</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (!GetCategoryData().Any())
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-database" style="font-size: 4rem; color: #ccc;"></i>
+                            <p class="text-muted mt-3">No data available for this category</p>
+                            <button class="btn btn-primary" @onclick="ShowAddDataModal">
+                                <i class="bi bi-plus-circle me-2"></i>Add First Item
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Value</th>
+                                        <th>Description</th>
+                                        <th>Display Order</th>
+                                        <th>Status</th>
+                                        <th style="width: 120px;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in GetCategoryData().OrderBy(x => x.DisplayOrder))
+                                    {
+                                        <tr>
+                                            <td><code>@item.DataCode</code></td>
+                                            <td><strong>@item.DataValue</strong></td>
+                                            <td>@item.Description</td>
+                                            <td>@item.DisplayOrder</td>
+                                            <td>
+                                                @if (item.IsActive)
+                                                {
+                                                    <span class="badge bg-success">Active</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger">Inactive</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-primary" @onclick="() => EditData(item)" title="Edit">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    @if (item.IsActive)
+                                                    {
+                                                        <button class="btn btn-outline-danger" @onclick="() => DeactivateData(item)" title="Deactivate">
+                                                            <i class="bi bi-x-circle"></i>
+                                                        </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <button class="btn btn-outline-success" @onclick="() => ActivateData(item)" title="Activate">
+                                                            <i class="bi bi-check-circle"></i>
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-arrow-up" style="font-size: 4rem; color: #ccc;"></i>
+                    <p class="text-muted mt-3">Please select a category above to view and manage master data</p>
+                </div>
+            </div>
+        }
+
+        <!-- Predefined Categories Info -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Category Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Customer Categories:</h6>
+                                <ul>
+                                    <li><strong>Legal Constitution:</strong> Company, Society, Trust/NGO, Partnership/LLP, Individual/Proprietor</li>
+                                    <li><strong>Business Segment:</strong> Agriculture, Manufacturing, Trading, Services, etc.</li>
+                                    <li><strong>Business Activity:</strong> Specific business activities within segments</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>General Categories:</h6>
+                                <ul>
+                                    <li><strong>Product Types:</strong> Loan products, banking services</li>
+                                    <li><strong>Source of Lead:</strong> Reference, Cold Call, Walk-in, Campaign, etc.</li>
+                                    <li><strong>Document Types:</strong> KYC, Financial, Business, Legal documents</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private List<MasterData> allMasterData = new();
+    private string selectedCategory = "";
+
+    private List<string> masterDataCategories = new()
+    {
+        "Legal Constitution",
+        "Business Segment",
+        "Business Activity",
+        "Occupation Type",
+        "Product Type",
+        "Lead Source",
+        "Document Type",
+        "Bank Products",
+        "Communication Medium",
+        "Designation",
+        "Department"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMasterData();
+    }
+
+    private async Task LoadMasterData()
+    {
+        isLoading = true;
+        try
+        {
+            allMasterData = (await MasterDataRepository.GetAllAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading master data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SelectCategory(string category)
+    {
+        selectedCategory = category;
+    }
+
+    private IEnumerable<MasterData> GetCategoryData()
+    {
+        if (string.IsNullOrEmpty(selectedCategory))
+            return Enumerable.Empty<MasterData>();
+
+        return allMasterData.Where(m => m.Category == selectedCategory);
+    }
+
+    private void ShowAddDataModal()
+    {
+        // TODO: Implement add data modal
+        Console.WriteLine($"Add new master data for category: {selectedCategory}");
+    }
+
+    private void EditData(MasterData data)
+    {
+        // TODO: Implement edit data modal
+        Console.WriteLine($"Edit master data: {data.DataValue}");
+    }
+
+    private async Task DeactivateData(MasterData data)
+    {
+        if (confirm($"Are you sure you want to deactivate '{data.DataValue}'?"))
+        {
+            try
+            {
+                data.IsActive = false;
+                await MasterDataRepository.UpdateAsync(data);
+                await LoadMasterData();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deactivating master data: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task ActivateData(MasterData data)
+    {
+        try
+        {
+            data.IsActive = true;
+            await MasterDataRepository.UpdateAsync(data);
+            await LoadMasterData();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error activating master data: {ex.Message}");
+        }
+    }
+
+    // Helper method for confirmation (would use JavaScript interop in real implementation)
+    private bool confirm(string message)
+    {
+        // TODO: Implement JavaScript confirm dialog
+        Console.WriteLine($"Confirm: {message}");
+        return true;
+    }
+}

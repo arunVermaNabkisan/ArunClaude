@@ -1,0 +1,152 @@
+@page "/admin"
+@attribute [Authorize(Policy = "Administrator")]
+
+<PageTitle>Administration - Sambandh CRM</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Administration</h2>
+            <p class="text-muted">System administration and configuration</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <!-- User Management -->
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 border-primary">
+                <div class="card-body text-center">
+                    <i class="bi bi-people-fill text-primary" style="font-size: 3rem;"></i>
+                    <h5 class="card-title mt-3">User Management</h5>
+                    <p class="card-text text-muted">Manage system users, roles, and permissions</p>
+                    <a href="/admin/users" class="btn btn-primary">
+                        <i class="bi bi-arrow-right me-2"></i>Manage Users
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Role Management -->
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 border-success">
+                <div class="card-body text-center">
+                    <i class="bi bi-shield-check text-success" style="font-size: 3rem;"></i>
+                    <h5 class="card-title mt-3">Role Management</h5>
+                    <p class="card-text text-muted">Configure roles and access permissions</p>
+                    <a href="/admin/roles" class="btn btn-success">
+                        <i class="bi bi-arrow-right me-2"></i>Manage Roles
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Master Data -->
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 border-info">
+                <div class="card-body text-center">
+                    <i class="bi bi-database-fill text-info" style="font-size: 3rem;"></i>
+                    <h5 class="card-title mt-3">Master Data</h5>
+                    <p class="card-text text-muted">Configure lookup values and master data</p>
+                    <a href="/admin/masterdata" class="btn btn-info">
+                        <i class="bi bi-arrow-right me-2"></i>Manage Data
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Settings -->
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 border-warning">
+                <div class="card-body text-center">
+                    <i class="bi bi-gear-fill text-warning" style="font-size: 3rem;"></i>
+                    <h5 class="card-title mt-3">System Settings</h5>
+                    <p class="card-text text-muted">Configure system preferences and settings</p>
+                    <a href="/admin/settings" class="btn btn-warning">
+                        <i class="bi bi-arrow-right me-2"></i>Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <a href="/admin/users/create" class="btn btn-outline-primary w-100">
+                                <i class="bi bi-person-plus me-2"></i>Add New User
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <button class="btn btn-outline-secondary w-100" disabled>
+                                <i class="bi bi-clock-history me-2"></i>View Audit Log
+                            </button>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <button class="btn btn-outline-info w-100" disabled>
+                                <i class="bi bi-file-earmark-arrow-down me-2"></i>Export Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Information -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">System Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 40%;">Application Name:</th>
+                                        <td>Sambandh CRM</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Version:</th>
+                                        <td>1.0.0</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Environment:</th>
+                                        <td><span class="badge bg-success">Development</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 40%;">Framework:</th>
+                                        <td>.NET 8.0</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Database:</th>
+                                        <td>SQL Server 2019+</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Last Updated:</th>
+                                        <td>@DateTime.Now.ToString("MMM dd, yyyy")</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

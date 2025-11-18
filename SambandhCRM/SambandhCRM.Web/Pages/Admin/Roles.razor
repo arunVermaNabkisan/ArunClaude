@@ -1,0 +1,330 @@
+@page "/admin/roles"
+@using SambandhCRM.Core.Interfaces
+@using SambandhCRM.Core.Models
+@inject IRoleRepository RoleRepository
+@attribute [Authorize(Policy = "Administrator")]
+
+<PageTitle>Role Management - Sambandh CRM</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/admin">Administration</a></li>
+                    <li class="breadcrumb-item active">Role Management</li>
+                </ol>
+            </nav>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>Role Management</h2>
+                    <p class="text-muted">Manage roles and permissions</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary" @onclick="ShowCreateRoleModal">
+                        <i class="bi bi-shield-plus me-2"></i>Add New Role
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading roles...</p>
+        </div>
+    }
+    else
+    {
+        <!-- Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2">Total Roles</h6>
+                        <h3 class="card-title mb-0">@roles.Count()</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2">Active Roles</h6>
+                        <h3 class="card-title mb-0">@roles.Count(r => r.IsActive)</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2">System Roles</h6>
+                        <h3 class="card-title mb-0">4</h3>
+                        <small>Predefined roles</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Roles Grid -->
+        <div class="row">
+            @foreach (var role in roles.Where(r => r.IsActive))
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 @GetRoleCardClass(role.RoleName)">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h5 class="card-title">
+                                        <i class="bi bi-shield-check me-2"></i>
+                                        @role.RoleName
+                                    </h5>
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" @onclick="() => EditRole(role)" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    @if (!IsSystemRole(role.RoleName))
+                                    {
+                                        <button class="btn btn-outline-danger" @onclick="() => DeleteRole(role)" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+
+                            <p class="card-text text-muted">
+                                @GetRoleDescription(role.RoleName)
+                            </p>
+
+                            <hr />
+
+                            <div class="mb-2">
+                                <strong>Permissions:</strong>
+                            </div>
+                            <div>
+                                @foreach (var permission in GetRolePermissions(role.RoleName))
+                                {
+                                    <span class="badge bg-secondary me-1 mb-1">@permission</span>
+                                }
+                            </div>
+
+                            @if (IsSystemRole(role.RoleName))
+                            {
+                                <div class="mt-3">
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="bi bi-lock me-1"></i>System Role
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <small class="text-muted">
+                                Created: @role.CreatedDate.ToString("MMM dd, yyyy")
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Role Details Table -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">All Roles</h5>
+            </div>
+            <div class="card-body">
+                @if (!roles.Any())
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-shield" style="font-size: 4rem; color: #ccc;"></i>
+                        <p class="text-muted mt-3">No roles found</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Role Name</th>
+                                    <th>Description</th>
+                                    <th>Type</th>
+                                    <th>Created Date</th>
+                                    <th>Status</th>
+                                    <th style="width: 120px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var role in roles)
+                                {
+                                    <tr>
+                                        <td>
+                                            <i class="bi bi-shield-check me-2"></i>
+                                            <strong>@role.RoleName</strong>
+                                        </td>
+                                        <td>@GetRoleDescription(role.RoleName)</td>
+                                        <td>
+                                            @if (IsSystemRole(role.RoleName))
+                                            {
+                                                <span class="badge bg-warning text-dark">System</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-info">Custom</span>
+                                            }
+                                        </td>
+                                        <td>@role.CreatedDate.ToString("MMM dd, yyyy")</td>
+                                        <td>
+                                            @if (role.IsActive)
+                                            {
+                                                <span class="badge bg-success">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">Inactive</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" @onclick="() => EditRole(role)" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                @if (!IsSystemRole(role.RoleName))
+                                                {
+                                                    <button class="btn btn-outline-danger" @onclick="() => DeleteRole(role)" title="Delete">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private List<Role> roles = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRoles();
+    }
+
+    private async Task LoadRoles()
+    {
+        isLoading = true;
+        try
+        {
+            roles = (await RoleRepository.GetAllAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading roles: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private bool IsSystemRole(string roleName)
+    {
+        var systemRoles = new[] { "Administrator", "Senior Management", "Regional Manager", "Relationship Manager" };
+        return systemRoles.Contains(roleName);
+    }
+
+    private string GetRoleDescription(string roleName)
+    {
+        return roleName switch
+        {
+            "Administrator" => "Full system access with all administrative privileges",
+            "Senior Management" => "View-only access to reports and analytics",
+            "Regional Manager" => "Manage multiple relationship managers and their portfolios",
+            "Relationship Manager" => "Manage customer relationships and day-to-day operations",
+            _ => "Custom role with specific permissions"
+        };
+    }
+
+    private List<string> GetRolePermissions(string roleName)
+    {
+        return roleName switch
+        {
+            "Administrator" => new List<string> { "All Permissions", "User Management", "System Configuration", "Reports", "Data Export" },
+            "Senior Management" => new List<string> { "View Reports", "View Analytics", "Export Data", "View All Customers" },
+            "Regional Manager" => new List<string> { "Manage Team", "View Reports", "Approve Leads", "Customer Management" },
+            "Relationship Manager" => new List<string> { "Customer Management", "Lead Management", "Communications", "Basic Reports" },
+            _ => new List<string> { "Basic Access" }
+        };
+    }
+
+    private string GetRoleCardClass(string roleName)
+    {
+        return roleName switch
+        {
+            "Administrator" => "border-danger",
+            "Senior Management" => "border-primary",
+            "Regional Manager" => "border-success",
+            "Relationship Manager" => "border-info",
+            _ => "border-secondary"
+        };
+    }
+
+    private void ShowCreateRoleModal()
+    {
+        // TODO: Implement create role modal or navigate to create page
+        Console.WriteLine("Create new role");
+    }
+
+    private void EditRole(Role role)
+    {
+        if (IsSystemRole(role.RoleName))
+        {
+            Console.WriteLine($"System role '{role.RoleName}' cannot be edited");
+            // Show alert that system roles cannot be edited
+            return;
+        }
+        // TODO: Implement edit role modal or navigate to edit page
+        Console.WriteLine($"Edit role: {role.RoleName}");
+    }
+
+    private async Task DeleteRole(Role role)
+    {
+        if (IsSystemRole(role.RoleName))
+        {
+            Console.WriteLine($"System role '{role.RoleName}' cannot be deleted");
+            return;
+        }
+
+        if (confirm($"Are you sure you want to delete role '{role.RoleName}'?"))
+        {
+            try
+            {
+                await RoleRepository.DeleteAsync(role.RoleId);
+                await LoadRoles();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting role: {ex.Message}");
+            }
+        }
+    }
+
+    // Helper method for confirmation (would use JavaScript interop in real implementation)
+    private bool confirm(string message)
+    {
+        // TODO: Implement JavaScript confirm dialog
+        Console.WriteLine($"Confirm: {message}");
+        return true;
+    }
+}
