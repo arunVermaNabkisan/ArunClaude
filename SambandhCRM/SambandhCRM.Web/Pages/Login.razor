@@ -1,11 +1,13 @@
 @page "/login"
-@using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Authentication.Cookies
 @using System.Security.Claims
 @using System.ComponentModel.DataAnnotations
-@inject SambandhCRM.Core.Interfaces.IAuthenticationService AuthService
+@using SambandhCRM.Core.Interfaces
+@using SambandhCRM.Web.Services
+@inject IAuthenticationService AuthService
+@inject IUserRepository UserRepository
+@inject IAuthenticationTokenService AuthTokenService
 @inject NavigationManager Navigation
-@inject IHttpContextAccessor HttpContextAccessor
 
 <PageTitle>Login - Sambandh CRM</PageTitle>
 
@@ -82,33 +84,29 @@
                     new Claim("FullName", user.FullName)
                 };
 
-                // Get user roles
-                var roles = await ((IUserRepository)AuthService.GetType().GetField("_userRepository",
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-                    .GetValue(AuthService)!).GetUserRolesAsync(user.UserId);
-
+                // Get user roles - using injected IUserRepository (no reflection!)
+                var roles = await UserRepository.GetUserRolesAsync(user.UserId);
                 foreach (var role in roles)
                 {
                     claims.Add(new Claim(ClaimTypes.Role, role.RoleName));
                 }
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                var authProperties = new AuthenticationProperties
+                var authProperties = new SambandhCRM.Web.Services.AuthenticationProperties
                 {
                     IsPersistent = true,
                     ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
                 };
 
-                var httpContext = HttpContextAccessor.HttpContext;
-                if (httpContext != null)
-                {
-                    await httpContext.SignInAsync(
-                        CookieAuthenticationDefaults.AuthenticationScheme,
-                        new ClaimsPrincipal(claimsIdentity),
-                        authProperties);
+                // Generate a secure token and store the authentication data
+                var token = AuthTokenService.GenerateToken(
+                    new ClaimsPrincipal(claimsIdentity),
+                    authProperties);
 
-                    Navigation.NavigateTo("/dashboard", true);
-                }
+                isLoading = false;
+                // Redirect to the controller endpoint that will complete the sign-in
+                //Navigation.NavigateTo($"/dashboard?token={token}", true);
+                Navigation.NavigateTo($"/api/auth/signin?token={token}", true);
             }
             else
             {
@@ -118,10 +116,6 @@
         catch (Exception ex)
         {
             errorMessage = $"An error occurred: {ex.Message}";
-        }
-        finally
-        {
-            isLoading = false;
         }
     }
 

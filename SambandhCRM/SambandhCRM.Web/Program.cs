@@ -3,12 +3,14 @@ using SambandhCRM.Core.Interfaces;
 using SambandhCRM.Core.Services;
 using SambandhCRM.Data.Context;
 using SambandhCRM.Data.Repositories;
+using SambandhCRM.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+builder.Services.AddControllers();
 
 // Add HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
@@ -21,6 +23,9 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ILeadRepository, LeadRepository>();
 builder.Services.AddScoped<IMasterDataRepository, MasterDataRepository>();
+// Register Services
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddSingleton<IAuthenticationTokenService, AuthenticationTokenService>();
 
 // Register Services
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
@@ -59,7 +64,7 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.MapControllers();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
