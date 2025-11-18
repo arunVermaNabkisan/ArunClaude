@@ -1,0 +1,396 @@
+@page "/communications"
+@attribute [Authorize]
+@inject ICommunicationRepository CommunicationRepo
+@inject ICustomerRepository CustomerRepo
+@inject ILeadRepository LeadRepo
+@inject NavigationManager Navigation
+
+<PageTitle>Communications - Sambandh CRM</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="bi bi-chat-dots"></i> Communication Management</h3>
+    <a href="/communications/create" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Log New Communication
+    </a>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-primary">@totalCommunications</h5>
+                <p class="card-text text-muted">Total Communications</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-info">@todayCommunications</h5>
+                <p class="card-text text-muted">Today</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-success">@weekCommunications</h5>
+                <p class="card-text text-muted">This Week</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-warning">@pendingFollowUps</h5>
+                <p class="card-text text-muted">Pending Follow-ups</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <input type="text" class="form-control" placeholder="Search communications..." @bind="searchTerm" @bind:event="oninput" @onkeyup="FilterCommunications" />
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" @bind="filterType" @bind:event="onchange" @onchange="FilterCommunications">
+                    <option value="">All Types</option>
+                    <option value="Phone">Phone Call</option>
+                    <option value="Email">Email</option>
+                    <option value="SMS">SMS</option>
+                    <option value="WhatsApp">WhatsApp</option>
+                    <option value="Meeting">Meeting</option>
+                    <option value="Letter">Letter</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" @bind="filterDirection" @bind:event="onchange" @onchange="FilterCommunications">
+                    <option value="">All Directions</option>
+                    <option value="Inbound">Inbound</option>
+                    <option value="Outbound">Outbound</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" @bind="filterPeriod" @bind:event="onchange" @onchange="FilterCommunications">
+                    <option value="All">All Time</option>
+                    <option value="Today">Today</option>
+                    <option value="Week">This Week</option>
+                    <option value="Month">This Month</option>
+                    <option value="Quarter">This Quarter</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">
+                    <i class="bi bi-x-circle"></i> Clear
+                </button>
+            </div>
+            <div class="col-md-1">
+                <button class="btn btn-outline-primary w-100" @onclick="ExportData" title="Export to Excel">
+                    <i class="bi bi-download"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center p-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (!filteredCommunications.Any())
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No communications found matching your criteria.
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Type</th>
+                            <th>Direction</th>
+                            <th>Related To</th>
+                            <th>Subject/Summary</th>
+                            <th>Next Action</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var comm in filteredCommunications)
+                        {
+                            var customer = customers.FirstOrDefault(c => c.CustomerId == comm.CustomerId);
+                            var lead = leads.FirstOrDefault(l => l.LeadId == comm.LeadId);
+                            <tr>
+                                <td>
+                                    <strong>@comm.CommunicationDate.ToString("MMM dd, yyyy")</strong>
+                                    <br /><small class="text-muted">@comm.CommunicationDate.ToString("hh:mm tt")</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-@GetTypeColor(comm.CommunicationType)">
+                                        <i class="bi bi-@GetTypeIcon(comm.CommunicationType)"></i>
+                                        @comm.CommunicationType
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-@(comm.Direction == "Inbound" ? "info" : "secondary")">
+                                        <i class="bi bi-arrow-@(comm.Direction == "Inbound" ? "down" : "up")-circle"></i>
+                                        @comm.Direction
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (customer != null)
+                                    {
+                                        <div>
+                                            <i class="bi bi-person"></i>
+                                            <a href="/customers/@customer.CustomerId">@customer.EntityName</a>
+                                        </div>
+                                        <small class="text-muted">Customer</small>
+                                    }
+                                    else if (lead != null)
+                                    {
+                                        <div>
+                                            <i class="bi bi-funnel"></i>
+                                            <a href="/leads/@lead.LeadId">@lead.LeadCode</a>
+                                        </div>
+                                        <small class="text-muted">Lead</small>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">General</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(comm.Subject))
+                                    {
+                                        <strong>@comm.Subject</strong>
+                                        <br />
+                                    }
+                                    @if (!string.IsNullOrEmpty(comm.Summary))
+                                    {
+                                        <small class="text-muted">
+                                            @(comm.Summary.Length > 100 ? comm.Summary.Substring(0, 100) + "..." : comm.Summary)
+                                        </small>
+                                    }
+                                    @if (comm.IsBulkCommunication && !string.IsNullOrEmpty(comm.CampaignName))
+                                    {
+                                        <br />
+                                        <span class="badge bg-purple mt-1">
+                                            <i class="bi bi-megaphone"></i> @comm.CampaignName
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(comm.NextActionRequired))
+                                    {
+                                        <div>@comm.NextActionRequired</div>
+                                        if (comm.NextActionDate.HasValue)
+                                        {
+                                            <small class="@(comm.NextActionDate.Value < DateTime.Now ? "text-danger fw-bold" : "text-muted")">
+                                                <i class="bi bi-calendar-event"></i>
+                                                @comm.NextActionDate.Value.ToString("MMM dd, yyyy")
+                                            </small>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">None</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(comm.DeliveryStatus))
+                                    {
+                                        <span class="badge bg-@GetStatusColor(comm.DeliveryStatus)">
+                                            @comm.DeliveryStatus
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    <a href="/communications/@comm.CommunicationId" class="btn btn-sm btn-outline-primary" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="/communications/edit/@comm.CommunicationId" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-3">
+                <p class="text-muted">Showing @filteredCommunications.Count() of @allCommunications.Count() communications</p>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private List<Communication> allCommunications = new();
+    private List<Communication> filteredCommunications = new();
+    private List<Customer> customers = new();
+    private List<Lead> leads = new();
+
+    private string searchTerm = string.Empty;
+    private string filterType = string.Empty;
+    private string filterDirection = string.Empty;
+    private string filterPeriod = "All";
+
+    private int totalCommunications = 0;
+    private int todayCommunications = 0;
+    private int weekCommunications = 0;
+    private int pendingFollowUps = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+
+            var commList = await CommunicationRepo.GetAllAsync();
+            allCommunications = commList.ToList();
+            filteredCommunications = allCommunications;
+
+            var customerList = await CustomerRepo.GetAllAsync();
+            customers = customerList.ToList();
+
+            var leadList = await LeadRepo.GetAllAsync();
+            leads = leadList.ToList();
+
+            CalculateStatistics();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading communications: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void CalculateStatistics()
+    {
+        var today = DateTime.Today;
+        var weekStart = today.AddDays(-(int)today.DayOfWeek);
+
+        totalCommunications = allCommunications.Count;
+        todayCommunications = allCommunications.Count(c => c.CommunicationDate.Date == today);
+        weekCommunications = allCommunications.Count(c => c.CommunicationDate.Date >= weekStart);
+        pendingFollowUps = allCommunications.Count(c =>
+            c.NextActionDate.HasValue &&
+            c.NextActionDate.Value < DateTime.Now &&
+            !string.IsNullOrEmpty(c.NextActionRequired));
+    }
+
+    private void FilterCommunications()
+    {
+        filteredCommunications = allCommunications.Where(c =>
+        {
+            var customer = customers.FirstOrDefault(cust => cust.CustomerId == c.CustomerId);
+            var lead = leads.FirstOrDefault(l => l.LeadId == c.LeadId);
+
+            var matchesSearch = string.IsNullOrEmpty(searchTerm) ||
+                               (c.Subject?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                               (c.Summary?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                               (customer?.EntityName?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                               (lead?.LeadCode?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false);
+
+            var matchesType = string.IsNullOrEmpty(filterType) ||
+                             c.CommunicationType == filterType;
+
+            var matchesDirection = string.IsNullOrEmpty(filterDirection) ||
+                                  c.Direction == filterDirection;
+
+            var matchesPeriod = filterPeriod switch
+            {
+                "Today" => c.CommunicationDate.Date == DateTime.Today,
+                "Week" => c.CommunicationDate.Date >= DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek),
+                "Month" => c.CommunicationDate.Month == DateTime.Today.Month && c.CommunicationDate.Year == DateTime.Today.Year,
+                "Quarter" => GetQuarter(c.CommunicationDate) == GetQuarter(DateTime.Today) && c.CommunicationDate.Year == DateTime.Today.Year,
+                _ => true
+            };
+
+            return matchesSearch && matchesType && matchesDirection && matchesPeriod;
+        }).ToList();
+    }
+
+    private void ClearFilters()
+    {
+        searchTerm = string.Empty;
+        filterType = string.Empty;
+        filterDirection = string.Empty;
+        filterPeriod = "All";
+        filteredCommunications = allCommunications;
+    }
+
+    private void ExportData()
+    {
+        // Placeholder for export functionality
+        Console.WriteLine("Export functionality to be implemented");
+    }
+
+    private int GetQuarter(DateTime date)
+    {
+        return (date.Month - 1) / 3 + 1;
+    }
+
+    private string GetTypeColor(string type)
+    {
+        return type switch
+        {
+            "Phone" => "primary",
+            "Email" => "info",
+            "SMS" => "success",
+            "WhatsApp" => "success",
+            "Meeting" => "warning",
+            "Letter" => "secondary",
+            _ => "secondary"
+        };
+    }
+
+    private string GetTypeIcon(string type)
+    {
+        return type switch
+        {
+            "Phone" => "telephone",
+            "Email" => "envelope",
+            "SMS" => "chat-text",
+            "WhatsApp" => "whatsapp",
+            "Meeting" => "calendar-event",
+            "Letter" => "file-text",
+            _ => "chat-dots"
+        };
+    }
+
+    private string GetStatusColor(string status)
+    {
+        return status switch
+        {
+            "Sent" => "success",
+            "Delivered" => "success",
+            "Read" => "info",
+            "Failed" => "danger",
+            "Pending" => "warning",
+            _ => "secondary"
+        };
+    }
+}
