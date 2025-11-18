@@ -130,6 +130,7 @@ main {
     }
 
     .top-row {
+        background-color: #224EA7;
         position: sticky;
         top: 0;
         z-index: 1;
@@ -145,6 +146,10 @@ main {
     display: none;
 }
 
+.nav-scrollable.show {
+    display: block;
+}
+
 .navbar-toggler {
     background-color: rgba(255, 255, 255, 0.1);
 }
@@ -156,6 +161,7 @@ main {
 .nav-item {
     font-size: 0.9rem;
     padding-bottom: 0.5rem;
+    color: white;
 }
 
     .nav-item:first-of-type {
@@ -191,7 +197,11 @@ main {
     }
 
     .nav-scrollable {
-        display: block;
+        display: block !important;
+    }
+
+    .nav-scrollable.collapse {
+        display: block !important;
     }
 }
 
