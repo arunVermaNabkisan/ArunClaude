@@ -103,8 +103,10 @@
                     new ClaimsPrincipal(claimsIdentity),
                     authProperties);
 
+                isLoading = false;
                 // Redirect to the controller endpoint that will complete the sign-in
-                Navigation.NavigateTo($"/Account/CompleteLogin?token={token}&returnUrl=/dashboard", forceLoad: true);
+                //Navigation.NavigateTo($"/dashboard?token={token}", true);
+                Navigation.NavigateTo($"/api/auth/signin?token={token}", true);
             }
             else
             {
@@ -114,10 +116,6 @@
         catch (Exception ex)
         {
             errorMessage = $"An error occurred: {ex.Message}";
-        }
-        finally
-        {
-            isLoading = false;
         }
     }
 

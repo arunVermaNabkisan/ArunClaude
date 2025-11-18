@@ -6,6 +6,8 @@ namespace SambandhCRM.Web.Services
     {
         string GenerateToken(ClaimsPrincipal principal, AuthenticationProperties properties);
         (ClaimsPrincipal? Principal, AuthenticationProperties? Properties) RetrieveAndRemove(string token);
+
+        (ClaimsPrincipal? Principal, AuthenticationProperties Properties) ValidateToken(string token);
     }
 
     public class AuthenticationProperties

@@ -40,6 +40,19 @@ namespace SambandhCRM.Web.Services
             return (null, null);
         }
 
+        public (ClaimsPrincipal? Principal, AuthenticationProperties Properties) ValidateToken(string token)
+        {
+            if (_tokens.TryRemove(token, out var data))
+            {
+                if (data.ExpiresAt > DateTime.UtcNow)
+                {
+                    return (data.Principal, data.Properties);
+                }
+            }
+
+            return (null, new AuthenticationProperties());
+        }
+
         private void CleanupExpiredTokens()
         {
             var expiredTokens = _tokens
