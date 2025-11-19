@@ -1,0 +1,329 @@
+@page "/communications/create"
+@attribute [Authorize]
+@inject ICommunicationRepository CommunicationRepo
+@inject ICustomerRepository CustomerRepo
+@inject ILeadRepository LeadRepo
+@inject NavigationManager Navigation
+@using System.Security.Claims
+
+<PageTitle>Log New Communication - Sambandh CRM</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="bi bi-chat-dots"></i> Log New Communication</h3>
+    <a href="/communications" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Communications
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> @errorMessage
+        <button type="button" class="btn-close" @onclick="@(() => errorMessage = string.Empty)"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(successMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle"></i> @successMessage
+        <button type="button" class="btn-close" @onclick="@(() => successMessage = string.Empty)"></button>
+    </div>
+}
+
+<EditForm Model="@communication" OnValidSubmit="@HandleValidSubmit">
+    <DataAnnotationsValidator />
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-link-45deg"></i> Related To</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="relatedType" class="form-label">Related To <span class="text-danger">*</span></label>
+                    <InputSelect id="relatedType" class="form-select" @bind-Value="relatedToType" @bind-Value:after="OnRelatedTypeChanged">
+                        <option value="">-- Select Type --</option>
+                        <option value="Customer">Customer</option>
+                        <option value="Lead">Lead</option>
+                    </InputSelect>
+                    <small class="text-muted">Select whether this communication is related to a customer or lead</small>
+                </div>
+
+                @if (relatedToType == "Customer")
+                {
+                    <div class="col-md-6">
+                        <label for="customerId" class="form-label">Customer <span class="text-danger">*</span></label>
+                        <InputSelect id="customerId" class="form-select" @bind-Value="communication.CustomerId">
+                            <option value="">-- Select Customer --</option>
+                            @foreach (var customer in customers)
+                            {
+                                <option value="@customer.CustomerId">@customer.EntityName (@customer.CustomerCode)</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => communication.CustomerId)" />
+                    </div>
+                }
+                else if (relatedToType == "Lead")
+                {
+                    <div class="col-md-6">
+                        <label for="leadId" class="form-label">Lead <span class="text-danger">*</span></label>
+                        <InputSelect id="leadId" class="form-select" @bind-Value="communication.LeadId">
+                            <option value="">-- Select Lead --</option>
+                            @foreach (var lead in leads)
+                            {
+                                <option value="@lead.LeadId">@lead.LeadCode - @lead.ProductInterest</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => communication.LeadId)" />
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Communication Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="communicationDate" class="form-label">Communication Date <span class="text-danger">*</span></label>
+                    <InputDate id="communicationDate" class="form-control" @bind-Value="communication.CommunicationDate" />
+                    <ValidationMessage For="@(() => communication.CommunicationDate)" />
+                </div>
+
+                <div class="col-md-4">
+                    <label for="communicationType" class="form-label">Communication Type <span class="text-danger">*</span></label>
+                    <InputSelect id="communicationType" class="form-select" @bind-Value="communication.CommunicationType">
+                        <option value="">-- Select Type --</option>
+                        <option value="Phone Call">Phone Call</option>
+                        <option value="Email">Email</option>
+                        <option value="SMS">SMS</option>
+                        <option value="WhatsApp">WhatsApp</option>
+                        <option value="Meeting">Meeting</option>
+                        <option value="Site Visit">Site Visit</option>
+                        <option value="Letter">Letter</option>
+                    </InputSelect>
+                    <ValidationMessage For="@(() => communication.CommunicationType)" />
+                </div>
+
+                <div class="col-md-4">
+                    <label for="direction" class="form-label">Direction <span class="text-danger">*</span></label>
+                    <InputSelect id="direction" class="form-select" @bind-Value="communication.Direction">
+                        <option value="">-- Select Direction --</option>
+                        <option value="Inbound">Inbound (Received)</option>
+                        <option value="Outbound">Outbound (Sent)</option>
+                    </InputSelect>
+                    <ValidationMessage For="@(() => communication.Direction)" />
+                </div>
+
+                <div class="col-md-12">
+                    <label for="subject" class="form-label">Subject</label>
+                    <InputText id="subject" class="form-control" @bind-Value="communication.Subject" placeholder="Brief subject or title" maxlength="255" />
+                    <ValidationMessage For="@(() => communication.Subject)" />
+                </div>
+
+                <div class="col-md-12">
+                    <label for="summary" class="form-label">Summary</label>
+                    <InputTextArea id="summary" class="form-control" @bind-Value="communication.Summary" rows="4" placeholder="Detailed summary of the communication..." />
+                    <ValidationMessage For="@(() => communication.Summary)" />
+                    <small class="text-muted">Provide details about what was discussed or communicated</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Next Action</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label for="nextActionRequired" class="form-label">Next Action Required</label>
+                    <InputText id="nextActionRequired" class="form-control" @bind-Value="communication.NextActionRequired" placeholder="Describe the follow-up action needed" maxlength="500" />
+                    <ValidationMessage For="@(() => communication.NextActionRequired)" />
+                    <small class="text-muted">Optional: Specify if any follow-up is needed</small>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="nextActionDate" class="form-label">Next Action Date</label>
+                    <InputDate id="nextActionDate" class="form-control" @bind-Value="communication.NextActionDate" />
+                    <ValidationMessage For="@(() => communication.NextActionDate)" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-send"></i> Delivery Status</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="deliveryStatus" class="form-label">Delivery Status</label>
+                    <InputSelect id="deliveryStatus" class="form-select" @bind-Value="communication.DeliveryStatus">
+                        <option value="">-- Select Status --</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Sent">Sent</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Failed">Failed</option>
+                        <option value="Opened">Opened</option>
+                        <option value="Clicked">Clicked</option>
+                    </InputSelect>
+                    <ValidationMessage For="@(() => communication.DeliveryStatus)" />
+                    <small class="text-muted">Optional: Specify the delivery status if applicable</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary" disabled="@isSaving">
+            @if (isSaving)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <span>Saving...</span>
+            }
+            else
+            {
+                <i class="bi bi-save"></i>
+                <span> Save Communication</span>
+            }
+        </button>
+        <a href="/communications" class="btn btn-outline-secondary">
+            <i class="bi bi-x-circle"></i> Cancel
+        </a>
+    </div>
+</EditForm>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    private Communication communication = new();
+    private List<Customer> customers = new();
+    private List<Lead> leads = new();
+    private string relatedToType = string.Empty;
+    private bool isSaving = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Set default values
+        communication.CommunicationDate = DateTime.Now;
+        communication.IsActive = true;
+        communication.CreatedDate = DateTime.Now;
+        communication.IsBulkCommunication = false;
+
+        // Get current user ID for CreatedBy
+        if (authenticationState != null)
+        {
+            var authState = await authenticationState;
+            var userIdClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
+            {
+                communication.CreatedBy = userId;
+            }
+        }
+
+        // Load customers and leads for dropdowns
+        await LoadCustomersAndLeads();
+    }
+
+    private async Task LoadCustomersAndLeads()
+    {
+        try
+        {
+            var allCustomers = await CustomerRepo.GetAllAsync();
+            customers = allCustomers.Where(c => c.IsActive).OrderBy(c => c.EntityName).ToList();
+
+            var allLeads = await LeadRepo.GetAllAsync();
+            leads = allLeads.Where(l => l.IsActive).OrderBy(l => l.LeadCode).ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading data: {ex.Message}";
+            Console.WriteLine($"Error loading customers and leads: {ex}");
+        }
+    }
+
+    private void OnRelatedTypeChanged()
+    {
+        // Clear the selected customer/lead when type changes
+        communication.CustomerId = null;
+        communication.LeadId = null;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            isSaving = true;
+            errorMessage = string.Empty;
+            successMessage = string.Empty;
+
+            // Validate that either customer or lead is selected
+            if (!communication.CustomerId.HasValue && !communication.LeadId.HasValue)
+            {
+                errorMessage = "Please select either a Customer or a Lead.";
+                return;
+            }
+
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(communication.CommunicationType))
+            {
+                errorMessage = "Communication Type is required.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(communication.Direction))
+            {
+                errorMessage = "Direction is required.";
+                return;
+            }
+
+            // Ensure only one of CustomerId or LeadId is set
+            if (communication.CustomerId.HasValue && communication.LeadId.HasValue)
+            {
+                errorMessage = "Communication cannot be linked to both Customer and Lead. Please select only one.";
+                return;
+            }
+
+            // Validate next action date if next action is specified
+            if (!string.IsNullOrWhiteSpace(communication.NextActionRequired) && !communication.NextActionDate.HasValue)
+            {
+                errorMessage = "Please specify a date for the next action.";
+                return;
+            }
+
+            // Save to database
+            var communicationId = await CommunicationRepo.AddAsync(communication);
+
+            if (communicationId > 0)
+            {
+                successMessage = "Communication logged successfully!";
+                // Navigate back to communications list after a short delay
+                await Task.Delay(1500);
+                Navigation.NavigateTo("/communications");
+            }
+            else
+            {
+                errorMessage = "Failed to log communication. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred: {ex.Message}";
+            Console.WriteLine($"Error logging communication: {ex}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}
