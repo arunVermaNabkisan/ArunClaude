@@ -1,0 +1,575 @@
+@page "/admin"
+@attribute [Authorize(Policy = "Administrator")]
+@inject IUserRepository UserRepo
+@inject IRoleRepository RoleRepo
+@inject NavigationManager Navigation
+
+<PageTitle>Administration - Sambandh CRM</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="bi bi-gear"></i> System Administration</h3>
+    <button class="btn btn-outline-primary" @onclick="RefreshData">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+    </button>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center p-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <!-- System Overview -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h6 class="card-title text-muted"><i class="bi bi-people"></i> Total Users</h6>
+                    <h2 class="text-primary">@allUsers.Count</h2>
+                    <small class="text-muted">Active users</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h6 class="card-title text-muted"><i class="bi bi-shield-check"></i> Total Roles</h6>
+                    <h2 class="text-success">@allRoles.Count</h2>
+                    <small class="text-muted">System roles</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h6 class="card-title text-muted"><i class="bi bi-person-check"></i> Active Today</h6>
+                    <h2 class="text-info">-</h2>
+                    <small class="text-muted">User sessions</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h6 class="card-title text-muted"><i class="bi bi-clock-history"></i> System Uptime</h6>
+                    <h2 class="text-warning">@systemUptime</h2>
+                    <small class="text-muted">Hours</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "users" ? "active" : "")" @onclick='() => SetActiveTab("users")'>
+                <i class="bi bi-people"></i> User Management
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "roles" ? "active" : "")" @onclick='() => SetActiveTab("roles")'>
+                <i class="bi bi-shield-check"></i> Role Management
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "settings" ? "active" : "")" @onclick='() => SetActiveTab("settings")'>
+                <i class="bi bi-sliders"></i> System Settings
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "audit" ? "active" : "")" @onclick='() => SetActiveTab("audit")'>
+                <i class="bi bi-file-text"></i> Audit Log
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        <!-- User Management Tab -->
+        @if (activeTab == "users")
+        {
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-people"></i> User Management</h5>
+                    <div>
+                        <input type="text" class="form-control form-control-sm d-inline-block" style="width: 250px;"
+                               placeholder="Search users..." @bind="userSearchTerm" @bind:event="oninput" @onkeyup="FilterUsers" />
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (filteredUsers.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>User ID</th>
+                                        <th>Username</th>
+                                        <th>Full Name</th>
+                                        <th>Email</th>
+                                        <th>Mobile</th>
+                                        <th>Status</th>
+                                        <th>Created Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var user in filteredUsers)
+                                    {
+                                        <tr>
+                                            <td>@user.UserId</td>
+                                            <td><strong>@user.UserName</strong></td>
+                                            <td>@user.FirstName @user.LastName</td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(user.Email))
+                                                {
+                                                    <span><i class="bi bi-envelope"></i> @user.Email</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(user.MobileNumber))
+                                                {
+                                                    <span><i class="bi bi-phone"></i> @user.MobileNumber</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-@(user.IsActive ? "success" : "danger")">
+                                                    @(user.IsActive ? "Active" : "Inactive")
+                                                </span>
+                                            </td>
+                                            <td>@user.CreatedDate.ToString("MMM dd, yyyy")</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewUserRoles(user.UserId)" title="View Roles">
+                                                    <i class="bi bi-shield"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-secondary" title="Edit User">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3">
+                            <p class="text-muted">Showing @filteredUsers.Count of @allUsers.Count users</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> No users found
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (selectedUser != null && selectedUserRoles.Any())
+            {
+                <div class="card mt-3">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Roles for @selectedUser.UserName</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var role in selectedUserRoles)
+                            {
+                                <span class="badge bg-primary p-2">
+                                    <i class="bi bi-shield-check"></i> @role.RoleName
+                                </span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+
+        <!-- Role Management Tab -->
+        @if (activeTab == "roles")
+        {
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-shield-check"></i> Role Management</h5>
+                </div>
+                <div class="card-body">
+                    @if (allRoles.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Role ID</th>
+                                        <th>Role Name</th>
+                                        <th>Description</th>
+                                        <th>Status</th>
+                                        <th>Created Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var role in allRoles)
+                                    {
+                                        <tr>
+                                            <td>@role.RoleId</td>
+                                            <td><strong>@role.RoleName</strong></td>
+                                            <td>@role.Description</td>
+                                            <td>
+                                                <span class="badge bg-@(role.IsActive ? "success" : "danger")">
+                                                    @(role.IsActive ? "Active" : "Inactive")
+                                                </span>
+                                            </td>
+                                            <td>@role.CreatedDate.ToString("MMM dd, yyyy")</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewRoleUsers(role.RoleId)" title="View Users">
+                                                    <i class="bi bi-people"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-secondary" title="Edit Role">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> No roles found
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (selectedRole != null && selectedRoleUsers.Any())
+            {
+                <div class="card mt-3">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Users with role: @selectedRole.RoleName</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            @foreach (var user in selectedRoleUsers)
+                            {
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <strong>@user.UserName</strong>
+                                            <small class="text-muted ms-2">@user.FirstName @user.LastName</small>
+                                        </div>
+                                        <small class="text-muted">@user.Email</small>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+
+        <!-- System Settings Tab -->
+        @if (activeTab == "settings")
+        {
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-sliders"></i> System Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="card border-light">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">General Settings</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">System Name</label>
+                                        <input type="text" class="form-control" value="Sambandh CRM" readonly />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Version</label>
+                                        <input type="text" class="form-control" value="1.0.0" readonly />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Environment</label>
+                                        <input type="text" class="form-control" value="Production" readonly />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card border-light">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">Security Settings</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Session Timeout (minutes)</label>
+                                        <input type="number" class="form-control" value="30" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Password Minimum Length</label>
+                                        <input type="number" class="form-control" value="8" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="requireStrongPassword" checked />
+                                            <label class="form-check-label" for="requireStrongPassword">
+                                                Require Strong Password
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="enableTwoFactor" />
+                                            <label class="form-check-label" for="enableTwoFactor">
+                                                Enable Two-Factor Authentication
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card border-light">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">Email Settings</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">SMTP Server</label>
+                                        <input type="text" class="form-control" placeholder="smtp.example.com" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">SMTP Port</label>
+                                        <input type="number" class="form-control" value="587" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">From Email</label>
+                                        <input type="email" class="form-control" placeholder="noreply@sambandh.com" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="enableSsl" checked />
+                                            <label class="form-check-label" for="enableSsl">
+                                                Enable SSL/TLS
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card border-light">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">Notification Settings</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="emailNotifications" checked />
+                                            <label class="form-check-label" for="emailNotifications">
+                                                Email Notifications
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="smsNotifications" />
+                                            <label class="form-check-label" for="smsNotifications">
+                                                SMS Notifications
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="leadAssignmentNotifications" checked />
+                                            <label class="form-check-label" for="leadAssignmentNotifications">
+                                                Lead Assignment Notifications
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="followUpReminders" checked />
+                                            <label class="form-check-label" for="followUpReminders">
+                                                Follow-up Reminders
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <button class="btn btn-primary" @onclick="SaveSettings">
+                            <i class="bi bi-save"></i> Save Settings
+                        </button>
+                        <button class="btn btn-outline-secondary ms-2">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Audit Log Tab -->
+        @if (activeTab == "audit")
+        {
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-file-text"></i> System Audit Log</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Audit log functionality will track all user actions, data changes, and system events.
+                        <br />
+                        <small>This feature is planned for future implementation.</small>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Entity</th>
+                                    <th>Details</th>
+                                    <th>IP Address</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">
+                                        <em>No audit log entries available</em>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private string activeTab = "users";
+    private string systemUptime = "24.5";
+
+    // User management
+    private List<User> allUsers = new();
+    private List<User> filteredUsers = new();
+    private string userSearchTerm = string.Empty;
+    private User? selectedUser = null;
+    private List<Role> selectedUserRoles = new();
+
+    // Role management
+    private List<Role> allRoles = new();
+    private Role? selectedRole = null;
+    private List<User> selectedRoleUsers = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+
+            var users = await UserRepo.GetAllAsync();
+            allUsers = users.ToList();
+            filteredUsers = allUsers;
+
+            var roles = await RoleRepo.GetAllAsync();
+            allRoles = roles.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading admin data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task RefreshData()
+    {
+        await LoadData();
+    }
+
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+        selectedUser = null;
+        selectedUserRoles.Clear();
+        selectedRole = null;
+        selectedRoleUsers.Clear();
+    }
+
+    private void FilterUsers()
+    {
+        filteredUsers = allUsers.Where(u =>
+            string.IsNullOrEmpty(userSearchTerm) ||
+            u.UserName.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase) ||
+            u.FirstName.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase) ||
+            u.LastName.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase) ||
+            (u.Email?.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
+        ).ToList();
+    }
+
+    private async Task ViewUserRoles(int userId)
+    {
+        try
+        {
+            selectedUser = allUsers.FirstOrDefault(u => u.UserId == userId);
+            if (selectedUser != null)
+            {
+                var roles = await UserRepo.GetUserRolesAsync(userId);
+                selectedUserRoles = roles.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user roles: {ex.Message}");
+        }
+    }
+
+    private async Task ViewRoleUsers(int roleId)
+    {
+        try
+        {
+            selectedRole = allRoles.FirstOrDefault(r => r.RoleId == roleId);
+            if (selectedRole != null)
+            {
+                var users = await RoleRepo.GetRoleUsersAsync(roleId);
+                selectedRoleUsers = users.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading role users: {ex.Message}");
+        }
+    }
+
+    private void SaveSettings()
+    {
+        // Placeholder for save settings functionality
+        Console.WriteLine("Save settings functionality to be implemented");
+    }
+}

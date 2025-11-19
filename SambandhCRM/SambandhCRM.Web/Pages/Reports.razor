@@ -1,0 +1,472 @@
+@page "/reports"
+@attribute [Authorize]
+@inject ICustomerRepository CustomerRepo
+@inject ILeadRepository LeadRepo
+@inject ICommunicationRepository CommunicationRepo
+@inject NavigationManager Navigation
+
+<PageTitle>Reports - Sambandh CRM</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="bi bi-graph-up"></i> Reports & Analytics</h3>
+    <div>
+        <button class="btn btn-outline-primary" @onclick="RefreshData">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+        <button class="btn btn-outline-success ms-2" @onclick="ExportReport">
+            <i class="bi bi-download"></i> Export
+        </button>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center p-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Summary Statistics -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Total Customers</h6>
+                    <h2 class="text-primary">@totalCustomers</h2>
+                    <small class="text-muted">Active in system</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Total Leads</h6>
+                    <h2 class="text-success">@totalLeads</h2>
+                    <small class="text-muted">In pipeline</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Conversion Rate</h6>
+                    <h2 class="text-info">@conversionRate%</h2>
+                    <small class="text-muted">Leads to Customers</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Communications</h6>
+                    <h2 class="text-warning">@totalCommunications</h2>
+                    <small class="text-muted">This month</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Analysis -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5><i class="bi bi-pie-chart"></i> Customers by Status</h5>
+                </div>
+                <div class="card-body">
+                    @if (customersByStatus.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Status</th>
+                                        <th class="text-end">Count</th>
+                                        <th class="text-end">Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in customersByStatus)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-@GetCustomerStatusColor(item.Key)">@item.Key</span>
+                                            </td>
+                                            <td class="text-end">@item.Value</td>
+                                            <td class="text-end">@((item.Value * 100.0 / totalCustomers).ToString("F1"))%</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No customer data available</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5><i class="bi bi-bar-chart"></i> Customers by Constitution</h5>
+                </div>
+                <div class="card-body">
+                    @if (customersByConstitution.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Constitution</th>
+                                        <th class="text-end">Count</th>
+                                        <th class="text-end">Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in customersByConstitution)
+                                    {
+                                        <tr>
+                                            <td>@item.Key</td>
+                                            <td class="text-end">@item.Value</td>
+                                            <td class="text-end">@((item.Value * 100.0 / totalCustomers).ToString("F1"))%</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No customer data available</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lead Analysis -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5><i class="bi bi-funnel"></i> Leads by Status</h5>
+                </div>
+                <div class="card-body">
+                    @if (leadsByStatus.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Status</th>
+                                        <th class="text-end">Count</th>
+                                        <th class="text-end">Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in leadsByStatus)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-@GetLeadStatusColor(item.Key)">@item.Key</span>
+                                            </td>
+                                            <td class="text-end">@item.Value</td>
+                                            <td class="text-end">@((item.Value * 100.0 / totalLeads).ToString("F1"))%</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No lead data available</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5><i class="bi bi-graph-up-arrow"></i> Customers by Business Segment</h5>
+                </div>
+                <div class="card-body">
+                    @if (customersBySegment.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Segment</th>
+                                        <th class="text-end">Count</th>
+                                        <th class="text-end">Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in customersBySegment)
+                                    {
+                                        <tr>
+                                            <td>@item.Key</td>
+                                            <td class="text-end">@item.Value</td>
+                                            <td class="text-end">@((item.Value * 100.0 / totalCustomers).ToString("F1"))%</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No customer data available</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Trends -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5><i class="bi bi-calendar3"></i> Monthly Activity Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="text-muted">New Customers</h6>
+                                <h3 class="text-primary">@newCustomersThisMonth</h3>
+                                <small>This Month</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="text-muted">New Leads</h6>
+                                <h3 class="text-success">@newLeadsThisMonth</h3>
+                                <small>This Month</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="text-muted">Converted Leads</h6>
+                                <h3 class="text-info">@convertedLeadsThisMonth</h3>
+                                <small>This Month</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="text-muted">Communications</h6>
+                                <h3 class="text-warning">@totalCommunications</h3>
+                                <small>This Month</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Communication Activity -->
+    <div class="row g-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5><i class="bi bi-chat-dots"></i> Communication Activity</h5>
+                </div>
+                <div class="card-body">
+                    @if (communicationsByType.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Communication Type</th>
+                                        <th class="text-end">Count</th>
+                                        <th class="text-end">Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in communicationsByType)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <i class="bi bi-@GetCommunicationIcon(item.Key)"></i> @item.Key
+                                            </td>
+                                            <td class="text-end">@item.Value</td>
+                                            <td class="text-end">@((item.Value * 100.0 / totalCommunications).ToString("F1"))%</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No communication data available</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+
+    // Summary metrics
+    private int totalCustomers = 0;
+    private int totalLeads = 0;
+    private int totalCommunications = 0;
+    private decimal conversionRate = 0;
+
+    // Monthly metrics
+    private int newCustomersThisMonth = 0;
+    private int newLeadsThisMonth = 0;
+    private int convertedLeadsThisMonth = 0;
+
+    // Breakdown data
+    private Dictionary<string, int> customersByStatus = new();
+    private Dictionary<string, int> customersByConstitution = new();
+    private Dictionary<string, int> customersBySegment = new();
+    private Dictionary<string, int> leadsByStatus = new();
+    private Dictionary<string, int> communicationsByType = new();
+
+    // Raw data
+    private List<Customer> allCustomers = new();
+    private List<Lead> allLeads = new();
+    private List<Communication> allCommunications = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReportData();
+    }
+
+    private async Task LoadReportData()
+    {
+        try
+        {
+            isLoading = true;
+
+            // Load all data
+            var customers = await CustomerRepo.GetAllAsync();
+            var leads = await LeadRepo.GetAllAsync();
+            var communications = await CommunicationRepo.GetAllAsync();
+
+            allCustomers = customers.ToList();
+            allLeads = leads.ToList();
+            allCommunications = communications.ToList();
+
+            // Calculate summary metrics
+            totalCustomers = allCustomers.Count;
+            totalLeads = allLeads.Count;
+
+            var convertedLeads = allLeads.Count(l => l.LeadStatus == "Converted");
+            conversionRate = totalLeads > 0 ? Math.Round((decimal)convertedLeads * 100 / totalLeads, 1) : 0;
+
+            // Monthly metrics
+            var today = DateTime.Today;
+            var firstDayOfMonth = new DateTime(today.Year, today.Month, 1);
+
+            newCustomersThisMonth = allCustomers.Count(c => c.CreatedDate >= firstDayOfMonth);
+            newLeadsThisMonth = allLeads.Count(l => l.CreatedDate >= firstDayOfMonth);
+            convertedLeadsThisMonth = allLeads.Count(l => l.LeadStatus == "Converted" && l.ModifiedDate.HasValue && l.ModifiedDate.Value >= firstDayOfMonth);
+            totalCommunications = allCommunications.Count(c => c.CommunicationDate >= firstDayOfMonth);
+
+            // Group by status/type
+            customersByStatus = allCustomers
+                .GroupBy(c => c.CustomerStatus)
+                .OrderByDescending(g => g.Count())
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            customersByConstitution = allCustomers
+                .GroupBy(c => c.LegalConstitution)
+                .OrderByDescending(g => g.Count())
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            customersBySegment = allCustomers
+                .Where(c => !string.IsNullOrEmpty(c.BusinessSegment))
+                .GroupBy(c => c.BusinessSegment)
+                .OrderByDescending(g => g.Count())
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            leadsByStatus = allLeads
+                .GroupBy(l => l.LeadStatus)
+                .OrderByDescending(g => g.Count())
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            communicationsByType = allCommunications
+                .Where(c => c.CommunicationDate >= firstDayOfMonth)
+                .GroupBy(c => c.CommunicationType)
+                .OrderByDescending(g => g.Count())
+                .ToDictionary(g => g.Key, g => g.Count());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading report data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task RefreshData()
+    {
+        await LoadReportData();
+    }
+
+    private void ExportReport()
+    {
+        // Placeholder for export functionality
+        // In a real implementation, this would generate CSV/Excel/PDF
+        Console.WriteLine("Export report functionality to be implemented");
+    }
+
+    private string GetCustomerStatusColor(string status)
+    {
+        return status switch
+        {
+            "Prospect" => "info",
+            "ActiveLead" => "warning",
+            "Customer" => "success",
+            "Dormant" => "secondary",
+            "Archived" => "dark",
+            _ => "secondary"
+        };
+    }
+
+    private string GetLeadStatusColor(string status)
+    {
+        return status switch
+        {
+            "New" => "primary",
+            "InProgress" => "info",
+            "Documentation" => "warning",
+            "SubmittedToCredit" => "success",
+            "Dropped" => "danger",
+            "Converted" => "success",
+            _ => "secondary"
+        };
+    }
+
+    private string GetCommunicationIcon(string type)
+    {
+        return type switch
+        {
+            "Email" => "envelope",
+            "Phone Call" => "telephone",
+            "Meeting" => "people",
+            "SMS" => "chat-text",
+            "WhatsApp" => "whatsapp",
+            _ => "chat-dots"
+        };
+    }
+}
